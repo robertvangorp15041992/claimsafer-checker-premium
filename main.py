@@ -698,7 +698,10 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
                 1,
                 add_rewrite=True,
                 icon_html=icon_allowed_claims
-            )
+            ),
+            section("Dosage", combined_dosage, icon_dosage),
+            section("Health Claim Pending European Authorisation", combined_pending, icon_pending),
+            section("Claim Use Notes", combined_notes, icon_notes),
         ]
 
         html_content = "<div class='space-y-6'>" + "".join(parts) + "</div>"
