@@ -91,20 +91,31 @@ print("MAIL_SSL_TLS:", os.getenv("MAIL_SSL_TLS"))
 # Load CSV
 # ----------------------------------------------------
 csv_path = os.getenv("CSV_FILE_PATH", "cleaned_claimchecker.csv")
+print(f"Looking for CSV file at: {csv_path}")
+print(f"Current working directory: {os.getcwd()}")
+print(f"Files in current directory: {os.listdir('.')}")
+
 if not os.path.exists(csv_path):
     print(f"ERROR: CSV file not found at {csv_path}", file=sys.stderr)
     print(f"Please set the CSV_FILE_PATH environment variable or place your CSV file at {csv_path}", file=sys.stderr)
     sys.exit(1)
 
-df = pd.read_csv(
-    csv_path,
-    sep=",",
-    engine="python",
-    on_bad_lines="warn",
-    quotechar='"',
-    skip_blank_lines=True,
-    header=0
-)
+try:
+    df = pd.read_csv(
+        csv_path,
+        sep=",",
+        engine="python",
+        on_bad_lines="warn",
+        quotechar='"',
+        skip_blank_lines=True,
+        header=0
+    )
+    print(f"✅ Successfully loaded CSV with {len(df)} rows and {len(df.columns)} columns")
+    print(f"CSV columns: {list(df.columns)}")
+except Exception as e:
+    print(f"ERROR loading CSV: {e}", file=sys.stderr)
+    sys.exit(1)
+
 df = df.applymap(lambda v: v.strip().strip('"') if isinstance(v, str) else v)
 
 text_cols = [
@@ -135,37 +146,30 @@ if os.path.exists(GPT_VARIATIONS_PATH):
         key = normalize_text(entry.get("Original", ""))
         VARIATION_LOOKUP[key] = entry.get("Variations", [])
     print(f"✅ Loaded {len(VARIATION_LOOKUP)} GPT claim variations")
-
-def get_variations_for_claim(claim: str):
-    """Return variations for a claim (exact or fuzzy match)."""
-    norm = normalize_text(claim)
-    if norm in VARIATION_LOOKUP:
-        return VARIATION_LOOKUP[norm]
-
-    # fuzzy match fallback
-    from rapidfuzz import fuzz
-    best_match, best_score = None, 0
-    for key, variations in VARIATION_LOOKUP.items():
-        score = fuzz.token_sort_ratio(norm, key)
-        if score > best_score:
-            best_match, best_score = variations, score
-    return best_match if best_score > 80 else []
+else:
+    print(f"⚠️ GPT variations file not found at {GPT_VARIATIONS_PATH}")
 
 # ----------------------------------------------------
-# Load GPT Variations JSON + Helper
+# Load GPT Variations JSON + Helper (FIXED - removed duplicate)
 # ----------------------------------------------------
 import json
 from rapidfuzz import process
 
-with open("gpt_claim_variations.json", "r", encoding="utf-8") as f:
-    GPT_VARIATIONS = json.load(f)
+try:
+    with open("gpt_claim_variations.json", "r", encoding="utf-8") as f:
+        GPT_VARIATIONS = json.load(f)
 
-# Build a lookup dict
-GPT_LOOKUP = {}
-for entry in GPT_VARIATIONS:
-    original = entry.get("Original", "").strip()
-    if original:
-        GPT_LOOKUP[original.lower()] = entry.get("Variations", [])
+    # Build a lookup dict
+    GPT_LOOKUP = {}
+    for entry in GPT_VARIATIONS:
+        original = entry.get("Original", "").strip()
+        if original:
+            GPT_LOOKUP[original.lower()] = entry.get("Variations", [])
+    
+    print(f"✅ Loaded GPT variations lookup with {len(GPT_LOOKUP)} entries")
+except Exception as e:
+    print(f"⚠️ Error loading GPT variations: {e}")
+    GPT_LOOKUP = {}
 
 def get_variations_for_claim(claim: str):
     claim_norm = claim.lower().strip()
@@ -541,10 +545,26 @@ def read_form(request: Request):
 @app.post("/search-by-ingredient", response_class=HTMLResponse)
 async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(...)):
     try:
+        print(f"🔍 Searching for ingredient: '{ingredient}' in country: '{country}'")
+        print(f"📊 DataFrame shape: {df.shape}")
+        print(f"📋 DataFrame columns: {list(df.columns)}")
+        
+        # Check if 'Ingredient' column exists
+        if 'Ingredient' not in df.columns:
+            print(f"❌ 'Ingredient' column not found! Available columns: {list(df.columns)}")
+            return HTMLResponse(
+                "<p class='text-gray-600'>Error: Ingredient column not found in data.</p>",
+                status_code=200
+            )
+        
         # Get all rows for this ingredient across all countries
         matches = df[df["Ingredient"].str.lower() == ingredient.lower()]
-
+        print(f"🎯 Found {len(matches)} matches for ingredient '{ingredient}'")
+        
         if matches.empty:
+            # Let's see what ingredients are available
+            available_ingredients = df["Ingredient"].unique()
+            print(f"📝 Available ingredients (first 10): {available_ingredients[:10]}")
             return HTMLResponse(
                 "<p class='text-gray-600'>No claims found for this ingredient.</p>",
                 status_code=200
@@ -578,6 +598,8 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
             notes = row.get("Claim Use Notes", "")
             if notes and notes.strip():
                 all_notes.add(notes.strip())
+
+        print(f"📈 Collected {len(all_claims)} unique claims, {len(all_dosages)} dosages")
 
         if not all_claims:
             return HTMLResponse(
@@ -629,6 +651,7 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
 
     except Exception as e:
         import traceback
+        print(f"❌ Error in search_by_ingredient: {e}")
         traceback.print_exc()
         return HTMLResponse(
             f"<p style='color: red;'>Server error: {str(e)}</p>",
