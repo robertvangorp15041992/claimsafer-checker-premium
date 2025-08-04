@@ -686,7 +686,10 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
                 # Get country-specific dosage
                 dosage = row.get("Dosage", "")
                 if dosage and str(dosage).strip() and str(dosage).strip() != "nan":
-                    country_dosages.add(str(dosage).strip())
+                    dosage_text = str(dosage).strip()
+                    # Don't add "Banned" as a dosage
+                    if dosage_text.lower() != "banned":
+                        country_dosages.add(dosage_text)
                 
                 # Get country-specific pending claims
                 pending = row.get("Health claim pending European authorisation", "")
