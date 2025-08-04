@@ -616,6 +616,11 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
                 status_code=200
             )
 
+        # Debug: Show first few matches
+        print(f"🔍 First 3 matches:")
+        for i, (_, row) in enumerate(matches.head(3).iterrows()):
+            print(f"  Row {i}: {dict(row)}")
+
         # Collect all unique claims across all countries
         all_claims = set()
         all_dosages = set()
@@ -624,28 +629,36 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
         all_notes = set()
         
         for _, row in matches.iterrows():
-            # Get the main claim from the "Claim" column
-            claim = row.get("Claim", "")
-            if claim and claim.strip():
-                all_claims.add(claim.strip())
+            # Try multiple possible claim columns
+            claim_sources = [
+                row.get("Claim", ""),
+                row.get("Allowed Claims", ""),
+                row.get("Claims", "")
+            ]
+            
+            for claim_source in claim_sources:
+                if claim_source and str(claim_source).strip() and str(claim_source).strip() != "nan":
+                    all_claims.add(str(claim_source).strip())
+                    break
             
             dosage = row.get("Dosage", "")
-            if dosage and dosage.strip():
-                all_dosages.add(dosage.strip())
+            if dosage and str(dosage).strip() and str(dosage).strip() != "nan":
+                all_dosages.add(str(dosage).strip())
                 
-            category = row.get("Categories", "")
-            if category and category.strip():
-                all_categories.add(category.strip())
+            category = row.get("Claim Category", "")
+            if category and str(category).strip() and str(category).strip() != "nan":
+                all_categories.add(str(category).strip())
                 
             pending = row.get("Health claim pending European authorisation", "")
-            if pending and pending.strip():
-                all_pending.add(pending.strip())
+            if pending and str(pending).strip() and str(pending).strip() != "nan":
+                all_pending.add(str(pending).strip())
                 
             notes = row.get("Claim Use Notes", "")
-            if notes and notes.strip():
-                all_notes.add(notes.strip())
+            if notes and str(notes).strip() and str(notes).strip() != "nan":
+                all_notes.add(str(notes).strip())
 
         print(f"📈 Collected {len(all_claims)} unique claims, {len(all_dosages)} dosages")
+        print(f"📋 Claims found: {list(all_claims)[:5]}")  # Show first 5 claims
 
         if not all_claims:
             return HTMLResponse(
@@ -686,10 +699,7 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
                 1,
                 add_rewrite=True,
                 icon_html=icon_allowed_claims
-            ),
-            section("Dosage", combined_dosage, icon_dosage),
-            section("Health Claim Pending European Authorisation", combined_pending, icon_pending),
-            section("Claim Use Notes", combined_notes, icon_notes),
+            )
         ]
 
         html_content = "<div class='space-y-6'>" + "".join(parts) + "</div>"
