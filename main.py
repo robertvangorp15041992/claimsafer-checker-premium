@@ -7,7 +7,8 @@ from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+from pydantic import BaseModel, EmailStr
 from typing import List, Optional
 import smtplib
 from email.mime.text import MIMEText
@@ -83,6 +84,7 @@ if (mail_username and mail_password and mail_from and
         USE_CREDENTIALS=True,
         VALIDATE_CERTS=True
     )
+    fastmail = FastMail(conf)
 
 print("DEBUG MAIL CONFIG")
 print("MAIL_USERNAME:", os.getenv("MAIL_USERNAME"))
