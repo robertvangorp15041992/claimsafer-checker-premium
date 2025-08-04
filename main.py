@@ -1,14 +1,21 @@
+import os
+import sys
+import json
+import pandas as pd
+from datetime import datetime
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import List, Optional
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from rapidfuzz import process
 
 from xhtml2pdf import pisa
 
-import os
-import sys
 import re
 import tempfile
 from pathlib import Path
@@ -21,7 +28,6 @@ try:
 except ImportError:
     pass
 
-import pandas as pd
 import numpy as np
 
 # ML / fuzzy
@@ -91,9 +97,29 @@ print("MAIL_SSL_TLS:", os.getenv("MAIL_SSL_TLS"))
 # Load CSV
 # ----------------------------------------------------
 csv_path = os.getenv("CSV_FILE_PATH", "cleaned_claimchecker.csv")
-print(f"Looking for CSV file at: {csv_path}")
-print(f"Current working directory: {os.getcwd()}")
-print(f"Files in current directory: {os.listdir('.')}")
+print(f"🔍 Looking for CSV file at: {csv_path}")
+print(f"📁 Current working directory: {os.getcwd()}")
+print(f"📋 Files in current directory: {os.listdir('.')}")
+
+# Check if we're on Railway
+if os.getenv("RAILWAY_ENVIRONMENT"):
+    print("🚂 Running on Railway environment")
+    # Ensure we're looking in the right place
+    if not os.path.exists(csv_path):
+        # Try alternative paths
+        alt_paths = [
+            "./cleaned_claimchecker.csv",
+            "/app/cleaned_claimchecker.csv",
+            "cleaned_claimchecker.csv"
+        ]
+        for alt_path in alt_paths:
+            if os.path.exists(alt_path):
+                csv_path = alt_path
+                print(f"✅ Found CSV at alternative path: {csv_path}")
+                break
+        else:
+            print(f"❌ CSV file not found in any expected location")
+            print(f"Available files: {os.listdir('.')}")
 
 if not os.path.exists(csv_path):
     print(f"ERROR: CSV file not found at {csv_path}", file=sys.stderr)
@@ -111,12 +137,20 @@ try:
         header=0
     )
     print(f"✅ Successfully loaded CSV with {len(df)} rows and {len(df.columns)} columns")
-    print(f"CSV columns: {list(df.columns)}")
+    print(f"📊 DataFrame columns: {list(df.columns)}")
+    
+    # Clean the data
+    df = df.applymap(lambda v: v.strip().strip('"') if isinstance(v, str) else v)
+    
+    print(f"🎯 Sample data - first 3 rows:")
+    print(df.head(3).to_string())
+    
 except Exception as e:
-    print(f"ERROR loading CSV: {e}", file=sys.stderr)
+    print(f"❌ Error loading CSV: {e}", file=sys.stderr)
+    print(f"Full traceback:", file=sys.stderr)
+    import traceback
+    traceback.print_exc(file=sys.stderr)
     sys.exit(1)
-
-df = df.applymap(lambda v: v.strip().strip('"') if isinstance(v, str) else v)
 
 text_cols = [
     "Claim Category",
@@ -531,6 +565,16 @@ def get_lexicon():
 def debug_category(q: str):
     return {"query": q, "category": category_for_query(q)}
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Railway"""
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "data_loaded": len(df) if 'df' in globals() else 0,
+        "variations_loaded": len(GPT_LOOKUP) if 'GPT_LOOKUP' in globals() else 0
+    }
+
 @app.get("/", response_class=HTMLResponse)
 def read_form(request: Request):
     ingredients = sorted(df["Ingredient"].dropna().unique())
@@ -860,7 +904,6 @@ async def send_email(email_request: EmailRequest):
             raise HTTPException(status_code=500, detail="Email configuration not available")
         
         # Create enhanced PDF with logo, date/time, and better formatting
-        from datetime import datetime
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         # Create the enhanced HTML for PDF
