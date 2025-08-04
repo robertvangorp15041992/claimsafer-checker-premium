@@ -672,7 +672,7 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
         for country, country_data in country_groups:
             # Get country-specific data
             country_claims = []
-            country_dosage = ""
+            country_dosages = set()  # Use set to avoid duplicates
             country_pending = ""
             country_notes = ""
             country_categories = set()
@@ -686,7 +686,7 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
                 # Get country-specific dosage
                 dosage = row.get("Dosage", "")
                 if dosage and str(dosage).strip() and str(dosage).strip() != "nan":
-                    country_dosage = str(dosage).strip()
+                    country_dosages.add(str(dosage).strip())
                 
                 # Get country-specific pending claims
                 pending = row.get("Health claim pending European authorisation", "")
@@ -711,6 +711,12 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
                     category_tags.append(f'<span class="inline-block bg-indigo-100 text-indigo-800 text-sm font-medium px-3 py-1 rounded-full mr-2 mb-2">{cat}</span>')
                 formatted_categories_html = "".join(category_tags)
             
+            # Format dosages for this country
+            country_dosage_text = ""
+            if country_dosages:
+                dosage_list = sorted(list(country_dosages))
+                country_dosage_text = "\n".join(dosage_list)
+            
             # Create country-specific sections
             country_parts = [
                 f"<h3 class='text-xl font-semibold text-gray-700 mb-4'>{country}</h3>",
@@ -723,7 +729,7 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
                     add_rewrite=True,
                     icon_html=icon_allowed_claims
                 ),
-                section("Dosage", country_dosage, icon_dosage),
+                section("Dosage", country_dosage_text, icon_dosage),
                 section("Health Claim Pending European Authorisation", country_pending, icon_pending),
                 section("Claim Use Notes", country_notes, icon_notes),
             ]
