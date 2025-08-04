@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-docx
+python-multipart
+openai
+jinja2
+pandas
+fastapi-mail
+xhtml2pdf
+scikit-learn
+rapidfuzz
+nltk

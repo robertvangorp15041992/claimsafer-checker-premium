@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ClaimSafer™ EU Checker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+  <style>
+    @media print {
+      body {
+        background: white;
+        color: black;
+        font-family: 'Inter', sans-serif;
+      }
+      details[open] summary::after { display: none; }
+      summary {
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 0.5rem;
+      }
+      .printable-section {
+        border: 1px solid #ddd;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        background: #fff;
+        position: relative;
+      }
+    }
+    select, input, button, textarea { font-size: 16px !important; }
+    .copy-icon {
+      position: absolute;
+      bottom: 1rem;
+      right: 1rem;
+      color: #6366f1;
+      cursor: pointer;
+      z-index: 10;
+    }
+    
+    /* Add spacing to containers with copy icons */
+    details:has(.copy-icon) {
+      padding-bottom: 3rem !important;
+    }
+    
+    /* Ensure text content doesn't overlap with copy icon */
+    details:has(.copy-icon) ul,
+    details:has(.copy-icon) div {
+      margin-right: 3rem !important;
+    }
+    
+    /* Modal CSS removed - no popup should appear */
+
+    /* Prevent body scroll when modal is open */
+    body.modal-open {
+      overflow: hidden !important;
+    }
+
+    /* Modal Styles - Updated for blurry white background and proper centering */
+    #variation-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    #variation-modal .bg-white {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+      margin: 0 auto;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #111827;
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      box-shadow: 0 4px 10px rgba(0,0,0,.15);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity .2s, transform .2s;
+      z-index: 9999;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    /* Ensure bullet points are visible */
+    .list-disc {
+      list-style-type: disc !important;
+    }
+    .list-disc li {
+      list-style-type: disc !important;
+      display: list-item !important;
+      margin-bottom: 0.5rem !important;
+      width: 100% !important;
+    }
+    .list-disc li:last-child {
+      margin-bottom: 0 !important;
+    }
+/* Modal blur effect removed to fix visibility issues */
+
+    /* Loading Screen Styles */
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      background: #FFFFFF;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      transition: opacity 0.8s ease-out;
+      overflow: hidden;
+    }
+
+    .loading-screen.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Animated Background */
+    .animated-bg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(95, 102, 211, 0.03) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(33, 59, 78, 0.03) 0%, transparent 50%);
+      animation: bgFlow 8s ease-in-out infinite;
+    }
+
+    @keyframes bgFlow {
+      0%, 100% { transform: translateX(0) translateY(0); }
+      25% { transform: translateX(-20px) translateY(-10px); }
+      50% { transform: translateX(10px) translateY(-20px); }
+      75% { transform: translateX(-10px) translateY(10px); }
+    }
+
+    /* Particles */
+    .particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: rgba(95, 102, 211, 0.1);
+      border-radius: 50%;
+      animation: float 6s linear infinite;
+    }
+
+    .particle:nth-child(1) { left: 10%; animation-delay: 0s; }
+    .particle:nth-child(2) { left: 20%; animation-delay: 1s; }
+    .particle:nth-child(3) { left: 30%; animation-delay: 2s; }
+    .particle:nth-child(4) { left: 40%; animation-delay: 3s; }
+    .particle:nth-child(5) { left: 50%; animation-delay: 4s; }
+    .particle:nth-child(6) { left: 60%; animation-delay: 5s; }
+    .particle:nth-child(7) { left: 70%; animation-delay: 0.5s; }
+    .particle:nth-child(8) { left: 80%; animation-delay: 1.5s; }
+    .particle:nth-child(9) { left: 90%; animation-delay: 2.5s; }
+
+    @keyframes float {
+      0% {
+        transform: translateY(100vh) translateX(0);
+        opacity: 0;
+      }
+      10% {
+        opacity: 1;
+      }
+      90% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-100px) translateX(100px);
+        opacity: 0;
+      }
+    }
+
+    /* Logo Container */
+    .logo-container {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    /* Animated Logo */
+    .bars-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 2rem;
+      height: 120px;
+    }
+
+    .logo-svg {
+      width: 200px;
+      height: 200px;
+      opacity: 0;
+      transform: scale(0.8);
+      animation: logoAppear 1s ease-out 0.5s forwards,
+                 logoPulse 2s ease-in-out 1.5s infinite;
+    }
+
+    @keyframes logoAppear {
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    @keyframes logoPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    /* Progress Bar */
+    .progress-container {
+      width: 300px;
+      max-width: 80vw;
+      margin-bottom: 2rem;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 3px;
+      background: rgba(95, 102, 211, 0.2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #5F66D3, #213B4E);
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.1s ease-out;
+    }
+
+    /* Loading Text */
+    .loading-text {
+      font-size: 1.1rem;
+      color: #213B4E;
+      font-weight: 500;
+      text-align: center;
+      min-height: 1.5em;
+      opacity: 0;
+      animation: fadeInOut 1s ease-in-out;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(10px); }
+      20%, 80% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+
+    .main-content {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.8s ease-out;
+    }
+
+    .main-content.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .logo-svg {
+        width: 150px;
+        height: 150px;
+      }
+
+      .progress-container {
+        width: 250px;
+      }
+
+      .loading-text {
+        font-size: 1rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .logo-svg {
+        width: 120px;
+        height: 120px;
+      }
+
+      .progress-container {
+        width: 200px;
+      }
+
+      .loading-text {
+        font-size: 0.9rem;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen py-10 px-4">
+  
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="loading-screen">
+    <div class="animated-bg"></div>
+    
+    <div class="particles">
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+      <div class="particle"></div>
+    </div>
+
+    <div class="logo-container">
+      <div class="bars-container">
+        <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5000 5000" preserveAspectRatio="xMidYMid meet">
+          <style>
+            svg { shape-rendering: geometricPrecision; }
+            
+            /* Groups slide in, paths wave */
+            .bar-group { opacity: 0; transform: translateY(1200px); }
+            .bar { transform-box: fill-box; transform-origin: center; }
+            
+            @keyframes slideIn {
+              from { transform: translateY(1200px); opacity: 0; }
+              to   { transform: translateY(0); opacity: 1; }
+            }
+            
+            @keyframes waveMotion {
+              0%, 100% { transform: translateY(0); }
+              25% { transform: translateY(-200px); }
+              50% { transform: translateY(0); }
+              75% { transform: translateY(200px); }
+            }
+            
+            /* Animate each group separately */
+            .g1 { animation: slideIn 1s ease-out forwards 0.1s; }
+            .g2 { animation: slideIn 1s ease-out forwards 0.4s; }
+            .g3 { animation: slideIn 1s ease-out forwards 0.7s; }
+            
+            /* Wave (slower, independent) */
+            .bar1 { animation: waveMotion 6s ease-in-out infinite 1.2s; }
+            .bar2 { animation: waveMotion 6s ease-in-out infinite 1.5s; }
+            .bar3 { animation: waveMotion 6s ease-in-out infinite 1.8s; }
+          </style>
+          
+          <g class="bar-group g1">
+            <path class="bar bar1" fill="#213B4E" d="M1549 2926 c-135 -133 -251 -251 -257 -263 -9 -16 -12 -232 -12 -806
+              0 -860 -3 -825 57 -794 24 13 380 343 441 409 l22 24 -2 836 -3 835 -246 -241z"/>
+          </g>
+          <g class="bar-group g2">
+            <path class="bar bar2" fill="#5F66D3" d="M2540 3395 c-80 -77 -183 -176 -229 -220 -46 -44 -96 -98 -112 -119
+              l-29 -39 0 -964 c0 -882 1 -964 16 -970 9 -3 31 1 48 11 31 17 420 373 444
+              407 9 14 12 230 10 1026 l-3 1008 -145 -140z"/>
+          </g>
+          <g class="bar-group g3">
+            <path class="bar bar3" fill="#5F66D3" d="M3503 3991 c-37 -32 -148 -139 -245 -238 l-178 -179 0 -1028 0 -1027
+              28 21 c74 58 451 433 466 464 14 31 16 128 16 1034 0 618 -4 1003 -9 1007 -6
+              3 -41 -21 -78 -54z"/>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <div class="progress-container">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
+    <div class="loading-text" id="loadingText">Initializing...</div>
+  </div>
+
+  <!-- Main App Content -->
+  <div id="main-content" class="main-content">
+    <div class="max-w-3xl mx-auto">
+      <!-- Top bar -->
+      <div class="flex flex-col md:flex-row items-center justify-between border-b border-gray-200 pb-2 mb-6">
+        <div class="text-sm leading-tight text-gray-600 font-semibold">
+          CONNECTED TO<br />CLAIMSAFER™ INGREDIENT VAULT™
+        </div>
+        <div class="flex items-center space-x-2 mt-2 md:mt-0">
+          <div class="text-sm leading-tight text-gray-600 text-right">
+            LAST SYNC<br /><span id="last-sync-time">--:--</span>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cloud-check">
+            <path d="m17 15-5.5 5.5L9 18"/>
+            <path d="M5 17.743A7 7 0 1 1 15.71 10h1.79a4.5 4.5 0 0 1 1.5 8.742"/>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Title with Logo -->
+      <div class="text-center mb-10">
+        <div class="mb-4">
+          <svg class="w-16 h-16 mx-auto" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5000 5000" preserveAspectRatio="xMidYMid meet">
+            <g>
+              <path fill="#213B4E" d="M1549 2926 c-135 -133 -251 -251 -257 -263 -9 -16 -12 -232 -12 -806
+                0 -860 -3 -825 57 -794 24 13 380 343 441 409 l22 24 -2 836 -3 835 -246 -241z"/>
+            </g>
+            <g>
+              <path fill="#5F66D3" d="M2540 3395 c-80 -77 -183 -176 -229 -220 -46 -44 -96 -98 -112 -119
+                l-29 -39 0 -964 c0 -882 1 -964 16 -970 9 -3 31 1 48 11 31 17 420 373 444
+                407 9 14 12 230 10 1026 l-3 1008 -145 -140z"/>
+            </g>
+            <g>
+              <path fill="#5F66D3" d="M3503 3991 c-37 -32 -148 -139 -245 -238 l-178 -179 0 -1028 0 -1027
+                28 21 c74 58 451 433 466 464 14 31 16 128 16 1034 0 618 -4 1003 -9 1007 -6
+                3 -41 -21 -78 -54z"/>
+            </g>
+          </svg>
+        </div>
+        <h1 class="text-4xl font-extrabold text-gray-800 mb-2">ClaimSafer™</h1>
+        <p class="text-lg text-gray-600">Ingredient-based EU compliance insights</p>
+      </div>
+
+    <!-- TAB BUTTONS -->
+    <div class="flex justify-center space-x-2 my-4">
+      <button id="btn-claim" class="tab-btn px-4 py-2 rounded-md bg-gray-200" data-tab="tab-claim">By Claim</button>
+      <button id="btn-ingredient" class="tab-btn px-4 py-2 rounded-md bg-gray-200" data-tab="tab-ingredient">By Ingredient</button>
+    </div>
+
+    <!-- ===================== TAB: By Claim (claim -> ingredients) ===================== -->
+    <div id="tab-claim" class="tab-content hidden">
+      <form id="claim-to-ingredient-form" class="bg-white p-6 rounded-xl shadow space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Category + Keyword -->
+          <select id="category-select" name="category" required class="p-3 border rounded">
+            <option value="">Select Category</option>
+          </select>
+
+          <select id="keyword-select" name="claim" class="p-3 border rounded">
+            <option value="">All (show everything in this category)</option>
+          </select>
+
+          <select name="country" required class="p-3 border rounded md:col-span-2">
+            <option value="">Select Country</option>
+            {% for country in countries %}
+              <option value="{{ country }}">{{ country }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700">Find Ingredients</button>
+      </form>
+
+      <div id="claim-to-ingredient-results" class="mt-6"></div>
+
+      <!-- NEW: Email block for By-Claim tab -->
+      <div id="claim-email-section" class="mt-4 hidden">
+        <label for="claim-emails" class="block mb-2 text-sm font-medium text-gray-700">
+          Send report to team
+        </label>
+        <select id="claim-emails" name="emails" multiple placeholder="Add email addresses..." autocomplete="off"></select>
+        <button id="send-claim-email-btn"
+                class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">
+          Send Report
+        </button>
+      </div>
+    </div>
+
+    <!-- ===================== TAB: By Ingredient (ingredient -> claims) ===================== -->
+    <div id="tab-ingredient" class="tab-content hidden">
+      <form id="ingredient-to-claim-form" class="bg-white p-6 rounded-xl shadow space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <select name="ingredient" id="ingredient" required class="p-3 border rounded">
+            <option value="">Select Ingredient</option>
+            {% for ingredient in ingredients %}
+              <option value="{{ ingredient }}">{{ ingredient }}</option>
+            {% endfor %}
+          </select>
+          <select name="country" id="country" required class="p-3 border rounded">
+          <option value="">Select Country</option>
+            {% for country in countries %}
+              <option value="{{ country }}">{{ country }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="flex flex-col md:flex-row justify-between gap-4">
+          <button type="submit" class="w-full py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">Check Claims</button>
+        </div>
+      </form>
+
+      <!-- Loading steps -->
+      <div id="loading-message" class="mt-8 text-center hidden text-sm text-gray-600 space-y-1">
+        <p id="step-1">Initializing ClaimSafer™ Ingredient Vault™...</p>
+        <p id="step-2" class="hidden">Extracting <span id="loading-ingredient" class="font-semibold"></span> for <span id="loading-country" class="font-semibold"></span>...</p>
+        <p id="step-3" class="hidden">Scanning botanicals on hold...</p>
+        <p id="step-4" class="hidden">Scanning EFSA nutrient intake references...</p>
+        <p id="step-5" class="hidden">Cross-referencing local authority documents for <span id="loading-country-2" class="font-semibold"></span>...</p>
+        <p id="step-6" class="hidden">Extracting guidelines for <span id="loading-ingredient-2" class="font-semibold"></span>...</p>
+        <p id="step-7" class="hidden">Compiling dossier for <span id="loading-ingredient-3" class="font-semibold"></span> in <span id="loading-country-3" class="font-semibold"></span>...</p>
+      </div>
+
+      <!-- Main response (claims) -->
+      <div id="main-response-container" class="mt-8 space-y-4"></div>
+
+      <!-- Similar ingredients (GPT response) -->
+      <div id="similar-ingredients-container" class="mt-8 space-y-2"></div>
+
+      <!-- Matching claims for similar ingredients -->
+      <div id="matching-claims-container" class="mt-8 space-y-2"></div>
+
+      <!-- Email -->
+      <div id="email-section" class="mt-6 hidden">
+        <label for="emails" class="block mb-2 text-sm font-medium text-gray-700">Send report to team</label>
+        <select id="emails" name="emails" multiple placeholder="Add email addresses..." autocomplete="off"></select>
+        <button id="send-ingredient-email-btn" class="mt-4 bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">Send Report</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+<!-- MODAL: Variations Popup -->
+<div id="variation-modal" class="hidden">
+  <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6 relative mx-4">
+    <!-- Close Button (top right) -->
+    <button id="close-modal"
+            class="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl font-bold"
+            aria-label="Close">
+      &times;
+    </button>
+    <!-- Title -->
+    <h2 class="font-semibold text-lg mb-4 text-gray-800">Claim Variations</h2>
+    <!-- List of Variations -->
+    <ul id="modal-variations" class="list-disc pl-6 space-y-2 mb-6"></ul>
+    <!-- Recycle Button -->
+    <button id="recycle-btn"
+            class="w-full flex items-center justify-center gap-2 py-2 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 font-semibold">
+      &#9851; New Variations
+    </button>
+  </div>
+</div>
+
+<script>
+  // -------------------------- TOAST --------------------------
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // -------------------------- UTIL --------------------------
+  function updateLastSync() {
+    const now = new Date();
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    document.getElementById("last-sync-time").textContent = `${hours}:${minutes}`;
+  }
+  updateLastSync();
+</script>
+<script>
+  // -------------------------- COPY ICONS --------------------------
+  function insertCopyIcons() {
+    const sections = document.querySelectorAll(".allowed-claims-section");
+    sections.forEach(section => {
+      const btn = document.createElement("div");
+      btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" class="lucide lucide-copy-icon copy-icon"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
+      btn.classList.add("copy-icon");
+      section.appendChild(btn);
+      btn.addEventListener("click", () => {
+        navigator.clipboard.writeText(section.innerText);
+        const tooltip = document.createElement("div");
+        tooltip.textContent = "Content copied";
+        tooltip.className = "absolute bottom-10 right-2 bg-indigo-600 text-white text-xs px-2 py-1 rounded shadow z-50";
+        section.appendChild(tooltip);
+        setTimeout(() => tooltip.remove(), 1500);
+      });
+    });
+  }
+
+  // ✅ CALL functions after DOM is ready
+  document.addEventListener("DOMContentLoaded", () => {
+    insertCopyIcons();
+    // loadClaimVariations();
+  });
+
+  // ------------------------- (keep all your other scripts: tabs, email, forms, etc.) --------------------------
+  // Paste the rest of your existing JS code for tabs, forms, etc. here, unchanged.
+
+</script>
+
+<script>
+    // -------------------------- TABS --------------------------
+    const tabButtons = document.querySelectorAll('.tab-btn');
+    const tabs = document.querySelectorAll('.tab-content');
+
+    // default: show By Ingredient
+    document.getElementById('tab-ingredient').classList.remove('hidden');
+    document.getElementById('btn-ingredient').classList.add('bg-indigo-600', 'text-white');
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.getAttribute('data-tab');
+
+        tabs.forEach(t => t.classList.add('hidden'));
+        tabButtons.forEach(b => b.classList.remove('bg-indigo-600', 'text-white'));
+
+        document.getElementById(targetId).classList.remove('hidden');
+        btn.classList.add('bg-indigo-600', 'text-white');
+      });
+    });
+</script>
+<script>
+    // -------------------------- EMAIL SELECTS --------------------------
+    new TomSelect("#emails", {
+      persist: false,
+      createOnBlur: true,
+      create: function(input) {
+        const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
+        return isValidEmail ? { value: input, text: input } : false;
+      }
+    });
+
+    new TomSelect("#claim-emails", {
+      persist: false,
+      createOnBlur: true,
+      create: function(input) {
+        const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input);
+        return isValidEmail ? { value: input, text: input } : false;
+      }
+    });
+
+    async function sendReportByEmail() {
+      const emails = Array.from(document.querySelectorAll('#emails option')).map(o => o.value);
+      const html = document.getElementById('main-response-container').innerHTML;
+
+      const res = await fetch('/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emails, html })
+      });
+
+      if (!res.ok) {
+        toast('Email failed to send');
+        return;
+      }
+      toast('Email sent!');
+    }
+
+    async function sendClaimReportByEmail() {
+      const emails = Array.from(document.querySelectorAll('#claim-emails option')).map(o => o.value);
+
+      // Take the HTML shown and force all <details> open
+      let html = document.getElementById('claim-to-ingredient-results').innerHTML;
+      html = html.replace(/<details(?!\\s+open)/g, '<details open');
+
+      const res = await fetch('/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emails, html })
+      });
+
+      if (!res.ok) {
+        toast('Email failed to send');
+        return;
+      }
+      toast('Email sent!');
+    }
+
+    document.getElementById('send-ingredient-email-btn')?.addEventListener('click', sendReportByEmail);
+    document.getElementById('send-claim-email-btn')?.addEventListener('click', sendClaimReportByEmail);
+</script>
+
+<script>
+// Modal functionality - ONLY appears when View Variations button is clicked
+function capitalizeFirst(str) {
+  if (!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function showVariationModal(variations) {
+  console.log('showVariationModal called with:', variations);
+  document.body.classList.add("modal-open");
+  const modal = document.getElementById("variation-modal");
+  console.log('Modal element:', modal);
+  
+  if (!modal) {
+    console.error('Modal element not found!');
+    return;
+  }
+  
+  modal.classList.remove("hidden");
+  modal.style.display = "flex";
+  
+  // Store all variations and current start index on the modal DOM node
+  modal._allVariations = variations;
+  modal._variationStart = 0;
+  
+  console.log('Modal should be visible now');
+  renderModalVariations();
+}
+
+function renderModalVariations() {
+  const modal = document.getElementById("variation-modal");
+  const ul = document.getElementById("modal-variations");
+  const variations = modal._allVariations || [];
+  const start = modal._variationStart || 0;
+
+  console.log('renderModalVariations called with:', { variations, start, length: variations.length });
+
+  ul.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const idx = (start + i) % variations.length;
+    const variation = variations[idx];
+    
+    // Check if variation exists and is not undefined/null
+    if (variation && typeof variation === 'string') {
+      const li = document.createElement('li');
+      li.textContent = capitalizeFirst(variation.trim());
+      ul.appendChild(li);
+    } else {
+      console.warn('Undefined or invalid variation at index:', idx, 'value:', variation);
+    }
+  }
+}
+
+function closeModal() {
+  const modal = document.getElementById("variation-modal");
+  modal.classList.add("hidden");
+  modal.style.display = "none";
+  document.body.classList.remove("modal-open");
+}
+
+function setupViewVariationsButtons() {
+  console.log('Setting up view variations buttons');
+  document.querySelectorAll('.view-variations-btn').forEach(btn => {
+    console.log('Found button:', btn);
+    if (btn._variationBound) return;
+    btn._variationBound = true;
+
+    btn.addEventListener('click', async function () {
+      console.log('Button clicked!');
+      const claim = this.getAttribute('data-claim');
+      console.log('Claim:', claim);
+      const resp = await fetch(`/get-variations?claim=${encodeURIComponent(claim)}`);
+      const data = await resp.json();
+      console.log('Response data:', data);
+      if (data.variations && data.variations.length) {
+        showVariationModal(data.variations);
+      } else {
+        alert("No variations found.");
+      }
+    });
+  });
+}
+
+// Modal event handlers
+document.addEventListener('DOMContentLoaded', function() {
+  // Ensure modal is hidden on page load
+  const modal = document.getElementById("variation-modal");
+  if (modal) {
+    modal.classList.add("hidden");
+    modal.style.display = "none";
+  }
+
+  // Close modal when clicking X button
+  const closeBtn = document.getElementById("close-modal");
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeModal);
+  }
+
+  // Close modal when clicking outside
+  if (modal) {
+    modal.addEventListener('click', function(e) {
+      if (e.target === this) {
+        closeModal();
+      }
+    });
+  }
+
+  // Recycle button for new variations
+  const recycleBtn = document.getElementById("recycle-btn");
+  if (recycleBtn) {
+    recycleBtn.addEventListener('click', function() {
+      const modal = document.getElementById("variation-modal");
+      const variations = modal._allVariations || [];
+      let currentStart = modal._variationStart || 0;
+      modal._variationStart = (currentStart + 3) % variations.length;
+      renderModalVariations();
+    });
+  }
+
+  // Close modal with Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById("variation-modal");
+      if (modal && modal.style.display === "flex") {
+        closeModal();
+      }
+    }
+  });
+});
+</script>
+
+<script>
+// Copy container content function
+function copyContainerContent(button) {
+  const container = button.closest('details');
+  const title = container.querySelector('summary span').textContent;
+  const content = container.querySelector('ul, div').textContent;
+  
+  // Create formatted text to copy
+  let textToCopy = `${title}\n\n`;
+  
+  // Get all list items or paragraphs
+  const items = container.querySelectorAll('li, p');
+  items.forEach((item, index) => {
+    textToCopy += `${index + 1}. ${item.textContent.trim()}\n`;
+  });
+  
+  // Copy to clipboard
+  navigator.clipboard.writeText(textToCopy).then(function() {
+    // Show success toast
+    toast('Content copied to clipboard!');
+    
+    // Visual feedback - briefly change icon color
+    const icon = button.querySelector('svg');
+    const originalColor = icon.style.stroke;
+    icon.style.stroke = '#10B981'; // Green color
+    setTimeout(() => {
+      icon.style.stroke = originalColor;
+    }, 1000);
+  }).catch(function(err) {
+    console.error('Failed to copy: ', err);
+    toast('Failed to copy content');
+  });
+}
+
+// Loading Screen Functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const loadingScreen = document.getElementById('loading-screen');
+  const mainContent = document.getElementById('main-content');
+  const progressFill = document.getElementById('progressFill');
+  const loadingText = document.getElementById('loadingText');
+
+  // Clear session storage to force loading screen to show
+  sessionStorage.removeItem('claimsafer-loaded');
+  
+  // Check if loading has already been completed
+  if (sessionStorage.getItem('claimsafer-loaded') === 'true') {
+    // Skip loading screen if already completed
+    loadingScreen.style.display = 'none';
+    mainContent.classList.add('show');
+    return;
+  }
+
+  const loadingMessages = [
+    { progress: 30, message: "Analyzing ingredients..." },
+    { progress: 70, message: "Mapping compliant claims..." },
+    { progress: 100, message: "Launching ClaimSafer™..." }
+  ];
+
+  let currentProgress = 0;
+
+  function updateProgress() {
+    if (currentProgress < 100) {
+      currentProgress += 1;
+      progressFill.style.width = currentProgress + '%';
+
+      // Update loading text
+      const currentMessage = loadingMessages.find(msg => msg.progress >= currentProgress);
+      if (currentMessage && currentMessage.progress === currentProgress) {
+        loadingText.textContent = currentMessage.message;
+        loadingText.style.animation = 'none';
+        loadingText.offsetHeight; // Trigger reflow
+        loadingText.style.animation = 'fadeInOut 1s ease-in-out';
+      }
+
+      setTimeout(updateProgress, 30); // 3 seconds total (3000ms / 100 steps = 30ms per step)
+    } else {
+      // Complete loading
+      setTimeout(() => {
+        loadingScreen.classList.add('fade-out');
+        setTimeout(() => {
+          mainContent.classList.add('show');
+          // Mark as loaded in session storage
+          sessionStorage.setItem('claimsafer-loaded', 'true');
+        }, 800);
+      }, 1000);
+    }
+  }
+
+  // Start the loading animation
+  setTimeout(updateProgress, 500);
+});
+</script>
+
+<script>
+// -------------------------- INGREDIENT -> CLAIMS --------------------------
+const ingredientForm = document.getElementById("ingredient-to-claim-form");
+const responseBox = document.getElementById("main-response-container");
+const countrySelect = document.getElementById("country");
+const loadingMessage = document.getElementById("loading-message");
+const steps = ["step-1", "step-2", "step-3", "step-4", "step-5", "step-6", "step-7"];
+const loadingIngredient = document.getElementById("loading-ingredient");
+const loadingCountry = document.getElementById("loading-country");
+const loadingCountry2 = document.getElementById("loading-country-2");
+const loadingCountry3 = document.getElementById("loading-country-3");
+const loadingIngredient2 = document.getElementById("loading-ingredient-2");
+const loadingIngredient3 = document.getElementById("loading-ingredient-3");
+
+ingredientForm.addEventListener("submit", async function (e) {
+  e.preventDefault();
+  const ingredient = document.getElementById("ingredient").value;
+  const country = countrySelect.value;
+
+  const url = "/search-by-ingredient"; // use the route that shows all unique claims
+
+  // set loading texts
+  loadingIngredient.textContent = ingredient;
+  loadingCountry.textContent = country;
+  loadingCountry2.textContent = country;
+  loadingCountry3.textContent = country;
+  loadingIngredient2.textContent = ingredient;
+  loadingIngredient3.textContent = ingredient;
+
+  // show loading sequence
+  steps.forEach(step => document.getElementById(step).classList.add("hidden"));
+  loadingMessage.classList.remove("hidden");
+  for (let i = 0; i < steps.length; i++) {
+    document.getElementById(steps[i]).classList.remove("hidden");
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    body: new URLSearchParams({ ingredient, country })
+  });
+
+ const result = await response.text();
+ loadingMessage.classList.add("hidden");
+ responseBox.innerHTML = result;
+ setupViewVariationsButtons();
+ document.getElementById("similar-ingredients-container").innerHTML = "";
+ document.getElementById("matching-claims-container").innerHTML = "";
+
+// ✅ opnieuw variaties laden nu claims aanwezig zijn
+ insertCopyIcons();
+ //loadClaimVariations();   // <--- HIER TOEGEVOEGD
+
+ document.getElementById("email-section").classList.remove("hidden");
+
+  });
+
+// -------------------------- BY CLAIM: init category + keyword --------------------------
+(async function initClaimTab() {
+  const catSel = document.getElementById('category-select');
+  const keySel = document.getElementById('keyword-select');
+
+  // 1) get lexicon
+  const res = await fetch('/lexicon');
+  const LEXICON = await res.json();
+
+  // 2) fill categories
+  Object.keys(LEXICON).sort().forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = cat;
+    catSel.appendChild(opt);
+  });
+
+  // 3) update keywords when category changes
+  catSel.addEventListener('change', () => {
+    keySel.innerHTML = '<option value="">All (show everything in this category)</option>';
+    const words = LEXICON[catSel.value] || [];
+    words.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w;
+      opt.textContent = w;
+      keySel.appendChild(opt);
+    });
+  });
+
+  // 4) Submit: Claim -> Ingredients
+  const claimForm = document.getElementById("claim-to-ingredient-form");
+  claimForm.addEventListener("submit", async function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+
+    const res = await fetch("/search-by-claim", {
+      method: "POST",
+      body: formData
+    });
+
+    const html = await res.text();
+    document.getElementById("claim-to-ingredient-results").innerHTML = html;
+    setupViewVariationsButtons();
+    //loadClaimVariations();   // ✅ opnieuw variaties laden nu de nieuwe claims in de DOM staan
+
+    // show email section if something meaningful came back
+    const hasResults = html.trim().length > 0 && !html.includes("No matching ingredients");
+    document.getElementById("claim-email-section").classList.toggle("hidden", !hasResults);
+  });
+})();
+</script>
+
+<script>
+// -------------------------- SIMILAR INGREDIENTS (optional) --------------------------
+async function getMatchingClaims(original, similar, country) {
+  const formData = new FormData();
+  formData.append("original", original);
+  formData.append("similar", similar);
+  formData.append("country", country);
+
+  const res = await fetch("/get-matching-claims", {
+    method: "POST",
+    body: formData
+  });
+
+  const html = await res.text();
+  const safeId = `${original}-${similar}`.replace(/[^a-zA-Z0-9]/g, "_");
+  const target = document.getElementById(`match-${safeId}`);
+  if (target) target.innerHTML = html;
+}
+
+window.findSimilar = function(ingredient) {
+  let claims = "";
+  const details = document.querySelectorAll("details");
+  for (let detail of details) {
+    const summaryText = detail.querySelector("summary span")?.innerText.trim();
+    if (summaryText === "Allowed Claims") {
+      claims = detail.querySelector("ul")?.innerText || "";
+      break;
+    }
+  }
+
+  const formData = new FormData();
+  formData.append("ingredient", ingredient);
+  formData.append("claims", claims);
+  formData.append("country", document.getElementById("country").value);
+
+  fetch("/find-similar", {
+    method: "POST",
+    body: formData
+  })
+  .then(res => res.json())
+  .then(data => {
+    const container = document.getElementById("similar-ingredients-container");
+    container.innerHTML = "";
+    const similarList = data.similar || [];
+
+    similarList.forEach(similar => {
+      const safeId = `${ingredient}-${similar}`.replace(/[^a-zA-Z0-9]/g, "_");
+
+      const button = document.createElement("button");
+      button.className = "text-indigo-600 underline text-sm mr-2 mb-1";
+      button.textContent = similar;
+      button.onclick = () => getMatchingClaims(ingredient, similar, document.getElementById("country").value);
+
+      const matchDiv = document.createElement("div");
+      matchDiv.id = `match-${safeId}`;
+      matchDiv.className = "mt-1 ml-2 text-sm text-gray-600";
+
+      container.appendChild(button);
+      container.appendChild(matchDiv);
+    });
+  })
+  .catch(error => console.error("Error finding similar ingredients:", error));
+};
+</script>
+
+<script>
+// -------------------------- REWRITE BUTTON HANDLER --------------------------
+
+// ✅ NEW: handler for the purple reload button
+document.addEventListener("click", async (e) => {
+  // When clicking "Rewrite Claim" button
+  const rewriteBtn = e.target.closest(".rewrite-btn");
+  if (rewriteBtn) {
+    const li = rewriteBtn.closest("li[data-section='allowed']");
+    if (!li) return;
+
+    const claim = rewriteBtn.dataset.claim;
+    const container = li.querySelector(".claim-variations");
+    if (!container) return;
+
+    container.innerHTML = `<p class="text-xs text-purple-400">⚡ Generating rewrites...</p>`;
+
+    try {
+      const res = await fetch(`/get-variations?claim=${encodeURIComponent(claim)}`);
+      const data = await res.json();
+      if (!data.variations || data.variations.length === 0) {
+        container.innerHTML = `<p class="text-xs text-gray-400">No variations found</p>`;
+        return;
+      }
+
+      // Save variations
+      container.dataset.allVariations = JSON.stringify(data.variations);
+      container.dataset.index = "0";
+
+      // Render the collapsed drawer
+      container.innerHTML = `
+        <button class="toggle-variations text-xs px-3 py-1 rounded-full bg-indigo-100 text-indigo-700">⚡ View Variations</button>
+        <div class="variation-list hidden flex gap-2 mt-2 flex-wrap"></div>
+      `;
+    } catch (err) {
+      console.error("Error loading variations:", err);
+      container.innerHTML = `<p class="text-xs text-red-400">Error loading variations</p>`;
+    }
+  }
+
+  // When clicking "View Variations" to expand
+  const toggleBtn = e.target.closest(".toggle-variations");
+  if (toggleBtn) {
+    const container = toggleBtn.parentElement;
+    const list = container.querySelector(".variation-list");
+    list.classList.remove("hidden");
+
+    // Render first 3 variations
+    const variations = JSON.parse(container.dataset.allVariations);
+    renderThree(list, variations, container);
+  }
+
+  // When clicking 🔄 to refresh
+  const reloadBtn = e.target.closest(".reload-claims");
+  if (reloadBtn) {
+    const container = reloadBtn.closest(".claim-variations");
+    const list = container.querySelector(".variation-list");
+    const variations = JSON.parse(container.dataset.allVariations);
+    renderThree(list, variations, container);
+  }
+
+  // Helper: Render 3 pills
+  function renderThree(list, variations, container) {
+    let index = parseInt(container.dataset.index);
+    const next = variations.slice(index, index + 3);
+    container.dataset.index = (index + 3) % variations.length;
+
+    list.innerHTML = `
+      ${next.map(v => `<span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs">${v}</span>`).join("")}
+      <button class="reload-claims ml-2 px-2 py-1 rounded-full bg-indigo-600 text-white">🔄</button>
+    `;
+  }
+});
+</script>
+
+<!-- Modal initialization removed -->
+
+<!-- Modal removed - variations now display inline -->
+
+</body>
+</html>

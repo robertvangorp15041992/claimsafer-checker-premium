@@ -1,0 +1,23 @@
+<div id="ingredient-tab">
+  <form id="ingredient-form" class="bg-white p-6 rounded-xl shadow space-y-4">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <select name="ingredient" required class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+        <option value="">Select Ingredient</option>
+        {% for ingredient in ingredients %}
+          <option value="{{ ingredient }}">{{ ingredient }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="country" required class="p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-500">
+        <option value="">Select Country</option>
+        {% for country in countries %}
+          <option value="{{ country }}">{{ country }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <button type="submit" class="w-full py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">Find Claims</button>
+  </form>
+
+  <div id="ingredient-results" class="mt-6"></div>
+</div>

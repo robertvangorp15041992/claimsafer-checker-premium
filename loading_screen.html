@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClaimSafer™ - Loading</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #FFFFFF;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #FFFFFF;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.8s ease-out;
+        }
+
+        .loading-screen.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Animated Background */
+        .animated-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(95, 102, 211, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(33, 59, 78, 0.03) 0%, transparent 50%);
+            animation: bgFlow 8s ease-in-out infinite;
+        }
+
+        @keyframes bgFlow {
+            0%, 100% { transform: translateX(0) translateY(0); }
+            25% { transform: translateX(-20px) translateY(-10px); }
+            50% { transform: translateX(10px) translateY(-20px); }
+            75% { transform: translateX(-10px) translateY(10px); }
+        }
+
+        /* Particles */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(95, 102, 211, 0.1);
+            border-radius: 50%;
+            animation: float 6s linear infinite;
+        }
+
+        .particle:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .particle:nth-child(2) { left: 20%; animation-delay: 1s; }
+        .particle:nth-child(3) { left: 30%; animation-delay: 2s; }
+        .particle:nth-child(4) { left: 40%; animation-delay: 3s; }
+        .particle:nth-child(5) { left: 50%; animation-delay: 4s; }
+        .particle:nth-child(6) { left: 60%; animation-delay: 5s; }
+        .particle:nth-child(7) { left: 70%; animation-delay: 0.5s; }
+        .particle:nth-child(8) { left: 80%; animation-delay: 1.5s; }
+        .particle:nth-child(9) { left: 90%; animation-delay: 2.5s; }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        /* Logo Container */
+        .logo-container {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        /* Animated Logo */
+        .bars-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+            height: 120px;
+        }
+
+        .logo-svg {
+            width: 200px;
+            height: 200px;
+            opacity: 0;
+            transform: scale(0.8);
+            animation: logoAppear 1s ease-out 0.5s forwards,
+                       logoPulse 2s ease-in-out 1.5s infinite;
+        }
+
+        @keyframes logoAppear {
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            width: 300px;
+            max-width: 80vw;
+            margin-bottom: 2rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 3px;
+            background: rgba(95, 102, 211, 0.2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #5F66D3, #213B4E);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.1s ease-out;
+        }
+
+        /* Loading Text */
+        .loading-text {
+            font-size: 1.1rem;
+            color: #213B4E;
+            font-weight: 500;
+            text-align: center;
+            min-height: 1.5em;
+            opacity: 0;
+            animation: fadeInOut 1s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(10px); }
+            20%, 80% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-10px); }
+        }
+
+        /* Dashboard */
+        .dashboard {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.8s ease-out;
+            z-index: 999;
+        }
+
+        .dashboard.show {
+            opacity: 1;
+        }
+
+        .dashboard iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #FFFFFF;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .logo-svg {
+                width: 150px;
+                height: 150px;
+            }
+
+            .progress-container {
+                width: 250px;
+            }
+
+            .loading-text {
+                font-size: 1rem;
+            }
+
+            .dashboard h1 {
+                font-size: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo-svg {
+                width: 120px;
+                height: 120px;
+            }
+
+            .progress-container {
+                width: 200px;
+            }
+
+            .loading-text {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="animated-bg"></div>
+        
+        <div class="particles">
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+            <div class="particle"></div>
+        </div>
+
+        <div class="logo-container">
+            <div class="bars-container">
+                <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5000 5000" preserveAspectRatio="xMidYMid meet">
+                    <style>
+                        svg { shape-rendering: geometricPrecision; }
+                        
+                        /* Groups slide in, paths wave */
+                        .bar-group { opacity: 0; transform: translateY(1200px); }
+                        .bar { transform-box: fill-box; transform-origin: center; }
+                        
+                        @keyframes slideIn {
+                            from { transform: translateY(1200px); opacity: 0; }
+                            to   { transform: translateY(0); opacity: 1; }
+                        }
+                        
+                        @keyframes waveMotion {
+                            0%, 100% { transform: translateY(0); }
+                            25% { transform: translateY(-200px); }
+                            50% { transform: translateY(0); }
+                            75% { transform: translateY(200px); }
+                        }
+                        
+                        /* Animate each group separately */
+                        .g1 { animation: slideIn 1s ease-out forwards 0.1s; }
+                        .g2 { animation: slideIn 1s ease-out forwards 0.4s; }
+                        .g3 { animation: slideIn 1s ease-out forwards 0.7s; }
+                        
+                        /* Wave (slower, independent) */
+                        .bar1 { animation: waveMotion 6s ease-in-out infinite 1.2s; }
+                        .bar2 { animation: waveMotion 6s ease-in-out infinite 1.5s; }
+                        .bar3 { animation: waveMotion 6s ease-in-out infinite 1.8s; }
+                    </style>
+                    
+                    <g class="bar-group g1">
+                        <path class="bar bar1" fill="#213B4E" d="M1549 2926 c-135 -133 -251 -251 -257 -263 -9 -16 -12 -232 -12 -806
+                            0 -860 -3 -825 57 -794 24 13 380 343 441 409 l22 24 -2 836 -3 835 -246 -241z"/>
+                    </g>
+                    <g class="bar-group g2">
+                        <path class="bar bar2" fill="#5F66D3" d="M2540 3395 c-80 -77 -183 -176 -229 -220 -46 -44 -96 -98 -112 -119
+                            l-29 -39 0 -964 c0 -882 1 -964 16 -970 9 -3 31 1 48 11 31 17 420 373 444
+                            407 9 14 12 230 10 1026 l-3 1008 -145 -140z"/>
+                    </g>
+                    <g class="bar-group g3">
+                        <path class="bar bar3" fill="#5F66D3" d="M3503 3991 c-37 -32 -148 -139 -245 -238 l-178 -179 0 -1028 0 -1027
+                            28 21 c74 58 451 433 466 464 14 31 16 128 16 1034 0 618 -4 1003 -9 1007 -6
+                            3 -41 -21 -78 -54z"/>
+                    </g>
+                </svg>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="loading-text" id="loadingText">Initializing...</div>
+    </div>
+
+    <!-- App Container -->
+    <div class="dashboard" id="dashboard">
+        <iframe src="http://localhost:8000" width="100%" height="100%" frameborder="0"></iframe>
+    </div>
+
+    <script>
+        // Loading screen functionality
+        const loadingScreen = document.getElementById('loadingScreen');
+        const dashboard = document.getElementById('dashboard');
+        const progressFill = document.getElementById('progressFill');
+        const loadingText = document.getElementById('loadingText');
+
+        const loadingMessages = [
+            { progress: 30, message: "Analyzing ingredients..." },
+            { progress: 70, message: "Mapping compliant claims..." },
+            { progress: 100, message: "Launching ClaimSafer™..." }
+        ];
+
+        let currentProgress = 0;
+        let messageIndex = 0;
+
+        function updateProgress() {
+            if (currentProgress < 100) {
+                currentProgress += 1;
+                progressFill.style.width = currentProgress + '%';
+
+                // Update loading text
+                const currentMessage = loadingMessages.find(msg => msg.progress >= currentProgress);
+                if (currentMessage && currentMessage.progress === currentProgress) {
+                    loadingText.textContent = currentMessage.message;
+                    loadingText.style.animation = 'none';
+                    loadingText.offsetHeight; // Trigger reflow
+                    loadingText.style.animation = 'fadeInOut 1s ease-in-out';
+                }
+
+                setTimeout(updateProgress, 30); // 3 seconds total (3000ms / 100 steps = 30ms per step)
+            } else {
+                // Complete loading
+                setTimeout(() => {
+                    loadingScreen.classList.add('fade-out');
+                    setTimeout(() => {
+                        dashboard.classList.add('show');
+                    }, 800);
+                }, 1000);
+            }
+        }
+
+        // Start the loading animation
+        setTimeout(updateProgress, 500);
+    </script>
+</body>
+</html> 
