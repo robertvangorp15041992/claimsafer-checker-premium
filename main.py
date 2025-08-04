@@ -98,7 +98,7 @@ print("MAIL_SSL_TLS:", os.getenv("MAIL_SSL_TLS"))
 # ----------------------------------------------------
 # Load CSV
 # ----------------------------------------------------
-csv_path = os.getenv("CSV_FILE_PATH", "cleaned_claimchecker.csv")
+csv_path = os.getenv("CSV_FILE_PATH", "Masterfile claims with categories - Masterfile claims with categories.csv.csv")
 print(f"🔍 Looking for CSV file at: {csv_path}")
 print(f"📁 Current working directory: {os.getcwd()}")
 print(f"📋 Files in current directory: {os.listdir('.')}")
@@ -110,9 +110,9 @@ if os.getenv("RAILWAY_ENVIRONMENT"):
     if not os.path.exists(csv_path):
         # Try alternative paths
         alt_paths = [
-            "./cleaned_claimchecker.csv",
-            "/app/cleaned_claimchecker.csv",
-            "cleaned_claimchecker.csv"
+            "./Masterfile claims with categories - Masterfile claims with categories.csv.csv",
+            "/app/Masterfile claims with categories - Masterfile claims with categories.csv.csv",
+            "Masterfile claims with categories - Masterfile claims with categories.csv.csv"
         ]
         for alt_path in alt_paths:
             if os.path.exists(alt_path):
@@ -155,9 +155,8 @@ except Exception as e:
     sys.exit(1)
 
 text_cols = [
-    "Claim Category",
-    "Allowed Claims", 
-    "Claim",
+    "Categories",
+    "Claim", 
     "Dosage",
     "Health claim pending European authorisation",
     "Claim Use Notes"
@@ -645,7 +644,7 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
             if dosage and str(dosage).strip() and str(dosage).strip() != "nan":
                 all_dosages.add(str(dosage).strip())
                 
-            category = row.get("Claim Category", "")
+            category = row.get("Categories", "")
             if category and str(category).strip() and str(category).strip() != "nan":
                 all_categories.add(str(category).strip())
                 
