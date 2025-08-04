@@ -665,44 +665,71 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
                 status_code=200
             )
 
-        # Convert to sorted lists for consistent ordering
-        unique_claims = sorted(list(all_claims))
-        unique_dosages = sorted(list(all_dosages))
-        unique_categories = sorted(list(all_categories))
-        unique_pending = sorted(list(all_pending))
-        unique_notes = sorted(list(all_notes))
+        # Group by country and create sections for each country
+        country_groups = matches.groupby('Country')
+        parts = [f"<h2 class='text-2xl font-bold text-gray-800 mb-6'>{ingredient} — All Countries</h2>"]
         
-        # Combine all dosages into one string
-        combined_dosage = "\n".join(unique_dosages) if unique_dosages else ""
-        combined_categories = "\n".join(unique_categories) if unique_categories else ""
-        combined_pending = "\n".join(unique_pending) if unique_pending else ""
-        combined_notes = "\n".join(unique_notes) if unique_notes else ""
-
-        # Format categories like the image but without the number
-        formatted_categories_html = "N/A"
-        if unique_categories:
-            # Create styled category tags like the image
-            category_tags = []
-            for cat in unique_categories:
-                category_tags.append(f'<span class="inline-block bg-indigo-100 text-indigo-800 text-sm font-medium px-3 py-1 rounded-full mr-2 mb-2">{cat}</span>')
-            formatted_categories_html = "".join(category_tags)
-
-        # Create the multi-section layout like check-claims
-        parts = [
-            f"<h2 class='text-2xl font-bold text-gray-800 mb-6'>{ingredient} — All Countries</h2>",
-            section("Claim Category", formatted_categories_html, icon_claim_category),
-            render_claim_card_collapsible(
-                "Allowed Claims",
-                unique_claims,
-                "",  # Remove dosage from Allowed Claims container
-                1,
-                add_rewrite=True,
-                icon_html=icon_allowed_claims
-            ),
-            section("Dosage", combined_dosage, icon_dosage),
-            section("Health Claim Pending European Authorisation", combined_pending, icon_pending),
-            section("Claim Use Notes", combined_notes, icon_notes),
-        ]
+        for country, country_data in country_groups:
+            # Get country-specific data
+            country_claims = []
+            country_dosage = ""
+            country_pending = ""
+            country_notes = ""
+            country_categories = set()
+            
+            for _, row in country_data.iterrows():
+                # Collect claims for this country
+                claim = row.get("Claim", "")
+                if claim and str(claim).strip() and str(claim).strip() != "nan":
+                    country_claims.append(str(claim).strip())
+                
+                # Get country-specific dosage
+                dosage = row.get("Dosage", "")
+                if dosage and str(dosage).strip() and str(dosage).strip() != "nan":
+                    country_dosage = str(dosage).strip()
+                
+                # Get country-specific pending claims
+                pending = row.get("Health claim pending European authorisation", "")
+                if pending and str(pending).strip() and str(pending).strip() != "nan":
+                    country_pending = str(pending).strip()
+                
+                # Get country-specific notes
+                notes = row.get("Claim Use Notes", "")
+                if notes and str(notes).strip() and str(notes).strip() != "nan":
+                    country_notes = str(notes).strip()
+                
+                # Get country-specific categories
+                category = row.get("Categories", "")
+                if category and str(category).strip() and str(category).strip() != "nan":
+                    country_categories.add(str(category).strip())
+            
+            # Format categories for this country
+            formatted_categories_html = "N/A"
+            if country_categories:
+                category_tags = []
+                for cat in sorted(country_categories):
+                    category_tags.append(f'<span class="inline-block bg-indigo-100 text-indigo-800 text-sm font-medium px-3 py-1 rounded-full mr-2 mb-2">{cat}</span>')
+                formatted_categories_html = "".join(category_tags)
+            
+            # Create country-specific sections
+            country_parts = [
+                f"<h3 class='text-xl font-semibold text-gray-700 mb-4'>{country}</h3>",
+                section("Claim Category", formatted_categories_html, icon_claim_category),
+                render_claim_card_collapsible(
+                    "Allowed Claims",
+                    country_claims,
+                    "",  # Remove dosage from Allowed Claims container
+                    1,
+                    add_rewrite=True,
+                    icon_html=icon_allowed_claims
+                ),
+                section("Dosage", country_dosage, icon_dosage),
+                section("Health Claim Pending European Authorisation", country_pending, icon_pending),
+                section("Claim Use Notes", country_notes, icon_notes),
+            ]
+            
+            parts.extend(country_parts)
+            parts.append("<hr class='my-8 border-gray-200'>")  # Separator between countries
 
         html_content = "<div class='space-y-6'>" + "".join(parts) + "</div>"
         return HTMLResponse(html_content, status_code=200)
