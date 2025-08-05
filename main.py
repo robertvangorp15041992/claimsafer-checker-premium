@@ -1,3 +1,6 @@
+import uuid
+from datetime import datetime, timedelta
+from collections import defaultdict
 import os
 import sys
 import json
@@ -38,8 +41,56 @@ from rapidfuzz import fuzz
 from nltk.stem.snowball import SnowballStemmer
 
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 # Basic helpers
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 def normalize(name: str) -> str:
     return name.lower().split("(")[0].strip()
 
@@ -54,14 +105,110 @@ def normalize_text(s: str) -> str:
     return s
 
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 # FastAPI
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
 
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 # Email config
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 conf = None
 mail_username = os.getenv("MAIL_USERNAME")
 mail_password = os.getenv("MAIL_PASSWORD")
@@ -96,8 +243,56 @@ print("MAIL_STARTTLS:", os.getenv("MAIL_STARTTLS"))
 print("MAIL_SSL_TLS:", os.getenv("MAIL_SSL_TLS"))
 
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 # Load CSV
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 csv_path = os.getenv("CSV_FILE_PATH", "Masterfile claims with categories - Masterfile claims with categories.csv.csv")
 print(f"🔍 Looking for CSV file at: {csv_path}")
 print(f"📁 Current working directory: {os.getcwd()}")
@@ -167,8 +362,56 @@ for col in text_cols:
 df[text_cols] = df[text_cols].fillna("").astype(str)
 
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 # ✅ LOAD GPT VARIATIONS JSON
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 import json
 
 GPT_VARIATIONS_PATH = "gpt_claim_variations.json"
@@ -185,8 +428,56 @@ else:
     print(f"⚠️ GPT variations file not found at {GPT_VARIATIONS_PATH}")
 
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 # Load GPT Variations JSON + Helper (FIXED - removed duplicate)
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 import json
 from rapidfuzz import process
 
@@ -221,8 +512,56 @@ def get_variations_for_claim(claim: str):
 
 
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 # CATEGORY LEXICON
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 CATEGORY_LEXICON = {
     "immune":        ["immune", "immunity", "defence", "defense", "resistance"],
     "digestive":     ["digest", "stomach", "gut", "intestinal", "flatulence", "bowel", "microbiome", "microbiota"],
@@ -250,8 +589,56 @@ CATEGORY_LEXICON = {
 }
 
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 # Claim splitting & categorisation
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 SPLIT_RE = re.compile(r"(?:\\n|\n|;|•|\u2022|^-\s+|\s-\s+)+", flags=re.MULTILINE)
 LABEL_RE = re.compile(r"^\s*(on[-\s]?hold:?|on[-\s]?hold\s*\\?:?)\s*", re.IGNORECASE)
 TOKEN_RE = re.compile(r"[a-z0-9]+")
@@ -309,8 +696,56 @@ def category_for_query(query: str) -> str:
     return assign_best_category_from_stems(claim_stems(normalize_text(query)))
 
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 # Build per-claim table & TF-IDF index
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 def build_claim_index(df: pd.DataFrame):
     rows = []
     for i, r in df.iterrows():
@@ -366,8 +801,56 @@ def build_claim_index(df: pd.DataFrame):
 df_claims, vectorizer, tfidf_matrix = build_claim_index(df)
 
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 # SVG icons + render helpers
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 icon_claim_category = '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-boxes-icon lucide-boxes w-6 h-6 text-indigo-500"><path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z"/><path d="m7 16.5-4.74-2.85"/><path d="m7 16.5 5-3"/><path d="M7 16.5v5.17"/><path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z"/><path d="m17 16.5-5-3"/><path d="m17 16.5 4.74-2.85"/><path d="M17 16.5v5.17"/><path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z"/><path d="M12 8 7.26 5.15"/><path d="m12 8 4.74-2.85"/><path d="M12 13.5V8"/></svg>'''
 icon_allowed_claims = '''<svg xmlns="http://www.w3.org/2000/svg" 2ie5h="24" height="24" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-zap w-6 h-6 text-indigo-500"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 15 21.84" /><path d="M21 5V8" /><path d="M21 12L18 17H22L19 22" /><path d="M3 12A9 3 0 0 0 14.59 14.87" /></svg>'''
 icon_dosage = '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-test-tube-diagonal w-6 h-6 text-indigo-500"><path d="M21 7 6.82 21.18a2.83 2.83 0 0 1-3.99-.01a2.83 2.83 0 0 1 0-4L17 3"/><path d="m16 2 6 6"/><path d="M12 16H4"/></svg>'''
@@ -489,8 +972,56 @@ def render_claim_card_collapsible(title, claims, dosage, idx, add_rewrite=True, 
 
 
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 # ROUTES
 # ----------------------------------------------------
+# Session management for search limits
+user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
+MAX_FREE_SEARCHES = 3
+
+def get_user_id(request: Request) -> str:
+    """Get or create user ID from cookies"""
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        user_id = str(uuid.uuid4())
+    return user_id
+
+def check_search_limit(user_id: str) -> dict:
+    """Check if user has exceeded search limit"""
+    session = user_sessions[user_id]
+    if session["first_search"] is None:
+        session["first_search"] = datetime.now()
+    
+    if session["search_count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": session["search_count"]}
+    return {"exceeded": False, "searches_used": session["search_count"]}
+
+def increment_search_count(user_id: str):
+    """Increment user search count"""
+    user_sessions[user_id]["search_count"] += 1
 @app.get("/_columns", response_class=JSONResponse)
 async def list_columns():
     return {"columns": df.columns.tolist()}
@@ -741,7 +1272,9 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
             parts.append("<hr class='my-8 border-gray-200'>")  # Separator between countries
 
         html_content = "<div class='space-y-6'>" + "".join(parts) + "</div>"
-        return HTMLResponse(html_content, status_code=200)
+        response = HTMLResponse(html_content, status_code=200)
+        response.set_cookie(key="user_id", value=user_id, max_age=365*24*60*60)
+        return response
 
     except Exception as e:
         import traceback
@@ -935,7 +1468,9 @@ async def check_claims(ingredient: str = Form(...), country: str = Form(...)):
         ]
 
         html_content = "<div class='space-y-6'>" + "".join(parts) + "</div>"
-        return HTMLResponse(html_content, status_code=200)
+        response = HTMLResponse(html_content, status_code=200)
+        response.set_cookie(key="user_id", value=user_id, max_age=365*24*60*60)
+        return response
 
     except Exception as e:
         import traceback
