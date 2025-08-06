@@ -17,67 +17,33 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from rapidfuzz import process
-
 from xhtml2pdf import pisa
-
 import re
 import tempfile
 from pathlib import Path
 from unicodedata import normalize as u_normalize
-
 # Load environment variables from .env file if it exists
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
     pass
-
 import numpy as np
-
 # ML / fuzzy
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from rapidfuzz import fuzz
 from nltk.stem.snowball import SnowballStemmer
 import time
-
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
-
 # ----------------------------------------------------
 # IP + User Agent based search limiting (most secure)
 ip_ua_searches = defaultdict(lambda: {"count": 0, "reset_time": time.time()})
 MAX_FREE_SEARCHES = 3
-
 # Whitelist for unlimited searches (add your IPs here)
 WHITELISTED_IPS = {
     "24.132.17.26",  # Your current IP
     # Add more IPs here if needed
 }
-
 def get_client_fingerprint(request: Request) -> str:
     """Create unique fingerprint from IP + User Agent"""
     # Get real IP (handle proxies)
@@ -86,10 +52,8 @@ def get_client_fingerprint(request: Request) -> str:
         client_ip = forwarded_for.split(",")[0].strip()
     else:
         client_ip = request.client.host
-    
     # Get User Agent
     user_agent = request.headers.get("User-Agent", "")
-    
     # Create fingerprint (IP + simplified User Agent)
     # Extract browser name and version
     ua_parts = []
@@ -103,7 +67,6 @@ def get_client_fingerprint(request: Request) -> str:
         ua_parts.append("Edge")
     else:
         ua_parts.append("Other")
-    
     # Add OS info
     if "Windows" in user_agent:
         ua_parts.append("Windows")
@@ -113,72 +76,36 @@ def get_client_fingerprint(request: Request) -> str:
         ua_parts.append("Linux")
     else:
         ua_parts.append("UnknownOS")
-    
     fingerprint = f"{client_ip}:{':'.join(ua_parts)}"
     return fingerprint
-
 def check_search_limit(fingerprint: str) -> dict:
     """Check if IP+UA combination has exceeded search limit"""
     # Extract IP from fingerprint for whitelist check
     client_ip = fingerprint.split(":")[0]
-    
     # Check if IP is whitelisted
     if client_ip in WHITELISTED_IPS:
         return {"exceeded": False, "searches_used": 0, "whitelisted": True}
-    
     now = time.time()
     ip_ua_data = ip_ua_searches[fingerprint]
-    
     # Reset every 24 hours
     if now - ip_ua_data["reset_time"] > 86400:  # 24 hours
         ip_ua_data["count"] = 0
         ip_ua_data["reset_time"] = now
-    
     if ip_ua_data["count"] >= MAX_FREE_SEARCHES:
         return {"exceeded": True, "searches_used": ip_ua_data["count"]}
     return {"exceeded": False, "searches_used": ip_ua_data["count"]}
-
 def increment_search_count(fingerprint: str):
     """Increment IP+UA search count"""
     # Extract IP from fingerprint for whitelist check
     client_ip = fingerprint.split(":")[0]
-    
     # Don't increment count for whitelisted IPs
     if client_ip in WHITELISTED_IPS:
         return
-    
     ip_ua_searches[fingerprint]["count"] += 1
-
 # ----------------------------------------------------
 # Basic helpers
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 def normalize(name: str) -> str:
     return name.lower().split("(")[0].strip()
-
 def normalize_text(s: str) -> str:
     """Lowercase, remove accents, punctuation, collapse whitespace."""
     if not isinstance(s, str):
@@ -188,117 +115,14 @@ def normalize_text(s: str) -> str:
     s = re.sub(r"[^a-z0-9\s]", " ", s)
     s = re.sub(r"\s+", " ", s).strip()
     return s
-
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 # FastAPI
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 app = FastAPI()
 templates = Jinja2Templates(directory="templates")
-
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 # Email config
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 conf = None
 mail_username = os.getenv("MAIL_USERNAME")
 mail_password = os.getenv("MAIL_PASSWORD")
 mail_from = os.getenv("MAIL_FROM")
-
 # Only create email config if we have valid email credentials (not placeholder values)
 if (mail_username and mail_password and mail_from and 
     mail_username != "your_railway_mail_username" and
@@ -317,7 +141,6 @@ if (mail_username and mail_password and mail_from and
         VALIDATE_CERTS=True
     )
     fastmail = FastMail(conf)
-
 print("DEBUG MAIL CONFIG")
 print("MAIL_USERNAME:", os.getenv("MAIL_USERNAME"))
 print("MAIL_PASSWORD:", os.getenv("MAIL_PASSWORD"))
@@ -326,63 +149,11 @@ print("MAIL_PORT:", os.getenv("MAIL_PORT"))
 print("MAIL_SERVER:", os.getenv("MAIL_SERVER"))
 print("MAIL_STARTTLS:", os.getenv("MAIL_STARTTLS"))
 print("MAIL_SSL_TLS:", os.getenv("MAIL_SSL_TLS"))
-
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 # Load CSV
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 csv_path = os.getenv("CSV_FILE_PATH", "Masterfile claims with categories - Masterfile claims with categories.csv.csv")
 print(f"🔍 Looking for CSV file at: {csv_path}")
 print(f"📁 Current working directory: {os.getcwd()}")
 print(f"📋 Files in current directory: {os.listdir('.')}")
-
 # Check if we're on Railway
 if os.getenv("RAILWAY_ENVIRONMENT"):
     print("🚂 Running on Railway environment")
@@ -402,12 +173,10 @@ if os.getenv("RAILWAY_ENVIRONMENT"):
         else:
             print(f"❌ CSV file not found in any expected location")
             print(f"Available files: {os.listdir('.')}")
-
 if not os.path.exists(csv_path):
     print(f"ERROR: CSV file not found at {csv_path}", file=sys.stderr)
     print(f"Please set the CSV_FILE_PATH environment variable or place your CSV file at {csv_path}", file=sys.stderr)
     sys.exit(1)
-
 try:
     df = pd.read_csv(
         csv_path,
@@ -420,20 +189,16 @@ try:
     )
     print(f"✅ Successfully loaded CSV with {len(df)} rows and {len(df.columns)} columns")
     print(f"📊 DataFrame columns: {list(df.columns)}")
-    
     # Clean the data
     df = df.applymap(lambda v: v.strip().strip('"') if isinstance(v, str) else v)
-    
     print(f"🎯 Sample data - first 3 rows:")
     print(df.head(3).to_string())
-    
 except Exception as e:
     print(f"❌ Error loading CSV: {e}", file=sys.stderr)
     print(f"Full traceback:", file=sys.stderr)
     import traceback
     traceback.print_exc(file=sys.stderr)
     sys.exit(1)
-
 text_cols = [
     "Categories",
     "Claim", 
@@ -445,63 +210,10 @@ for col in text_cols:
     if col not in df.columns:
         df[col] = ""
 df[text_cols] = df[text_cols].fillna("").astype(str)
-
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 # ✅ LOAD GPT VARIATIONS JSON
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 import json
-
 GPT_VARIATIONS_PATH = "gpt_claim_variations.json"
 VARIATION_LOOKUP = {}
-
 if os.path.exists(GPT_VARIATIONS_PATH):
     with open(GPT_VARIATIONS_PATH, "r") as f:
         gpt_data = json.load(f)
@@ -511,142 +223,33 @@ if os.path.exists(GPT_VARIATIONS_PATH):
     print(f"✅ Loaded {len(VARIATION_LOOKUP)} GPT claim variations")
 else:
     print(f"⚠️ GPT variations file not found at {GPT_VARIATIONS_PATH}")
-
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 # Load GPT Variations JSON + Helper (FIXED - removed duplicate)
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 import json
 from rapidfuzz import process
-
 try:
     with open("gpt_claim_variations.json", "r", encoding="utf-8") as f:
         GPT_VARIATIONS = json.load(f)
-
     # Build a lookup dict
     GPT_LOOKUP = {}
     for entry in GPT_VARIATIONS:
         original = entry.get("Original", "").strip()
         if original:
             GPT_LOOKUP[original.lower()] = entry.get("Variations", [])
-    
     print(f"✅ Loaded GPT variations lookup with {len(GPT_LOOKUP)} entries")
 except Exception as e:
     print(f"⚠️ Error loading GPT variations: {e}")
     GPT_LOOKUP = {}
-
 def get_variations_for_claim(claim: str):
     claim_norm = claim.lower().strip()
     if claim_norm in GPT_LOOKUP:
         variations = GPT_LOOKUP[claim_norm]
         return variations if variations else []
-    
     best_match, score, _ = process.extractOne(claim_norm, GPT_LOOKUP.keys())
     if score > 80 and best_match:
         variations = GPT_LOOKUP[best_match]
         return variations if variations else []
-    
     return []
-
-
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 # CATEGORY LEXICON
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 CATEGORY_LEXICON = {
     "immune":        ["immune", "immunity", "defence", "defense", "resistance"],
     "digestive":     ["digest", "stomach", "gut", "intestinal", "flatulence", "bowel", "microbiome", "microbiota"],
@@ -672,70 +275,16 @@ CATEGORY_LEXICON = {
     "prebiotic":     ["prebiotic", "prebiotics"],
     "inflammation":  ["inflammation", "inflammatory", "anti-inflammatory", "inflamed"]
 }
-
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 # Claim splitting & categorisation
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 SPLIT_RE = re.compile(r"(?:\\n|\n|;|•|\u2022|^-\s+|\s-\s+)+", flags=re.MULTILINE)
 LABEL_RE = re.compile(r"^\s*(on[-\s]?hold:?|on[-\s]?hold\s*\\?:?)\s*", re.IGNORECASE)
 TOKEN_RE = re.compile(r"[a-z0-9]+")
-
 stemmer = SnowballStemmer("english")
-
 def clean_claim(c: str) -> str:
     c = LABEL_RE.sub("", c.strip())
     c = re.sub(r"^\d+[\)\.:-]\s*", "", c)
     c = re.sub(r"\s+", " ", c).strip()
     return c
-
 def split_claims(raw) -> list[str]:
     if raw is None or (isinstance(raw, float) and pd.isna(raw)):
         return []
@@ -753,22 +302,17 @@ def split_claims(raw) -> list[str]:
             seen.add(p_norm)
             final.append(p)
     return final
-
 def tokenize(s: str) -> list[str]:
     return TOKEN_RE.findall(s.lower())
-
 def stems_of(words: list[str]) -> set[str]:
     return {stemmer.stem(w) for w in words}
-
 def claim_stems(text: str) -> set[str]:
     return stems_of(tokenize(text))
-
 # Build category stems
 CATEGORY_STEMS = {
     cat: stems_of([tok for phrase in words for tok in tokenize(phrase)])
     for cat, words in CATEGORY_LEXICON.items()
 }
-
 def assign_best_category_from_stems(stems: set[str]) -> str:
     best_cat, best_score = "uncategorized", 0
     for cat, cat_stems in CATEGORY_STEMS.items():
@@ -776,61 +320,9 @@ def assign_best_category_from_stems(stems: set[str]) -> str:
         if score > best_score:
             best_cat, best_score = cat, score
     return best_cat
-
 def category_for_query(query: str) -> str:
     return assign_best_category_from_stems(claim_stems(normalize_text(query)))
-
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 # Build per-claim table & TF-IDF index
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 def build_claim_index(df: pd.DataFrame):
     rows = []
     for i, r in df.iterrows():
@@ -840,7 +332,6 @@ def build_claim_index(df: pd.DataFrame):
         dosage  = r.get("Dosage", "")
         # Use the actual categories from the CSV instead of guessing
         categories = r.get("Categories", "")
-
         for c in split_claims(allowed):
             c_norm = normalize_text(c)
             # Use the categories from CSV, fallback to keyword matching if empty
@@ -868,12 +359,9 @@ def build_claim_index(df: pd.DataFrame):
                     "Dosage": dosage,   # ✅ dosage meenemen
                     "row_idx": i
                 })
-
     df_claims = pd.DataFrame(rows)
-
     if df_claims.empty:
         return df_claims, None, None
-
     vectorizer = TfidfVectorizer(
         stop_words="english",
         ngram_range=(1, 2),
@@ -882,66 +370,13 @@ def build_claim_index(df: pd.DataFrame):
     )
     tfidf_matrix = vectorizer.fit_transform(df_claims["claim_norm"])
     return df_claims, vectorizer, tfidf_matrix
-
 df_claims, vectorizer, tfidf_matrix = build_claim_index(df)
-
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 # SVG icons + render helpers
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 icon_claim_category = '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-boxes-icon lucide-boxes w-6 h-6 text-indigo-500"><path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z"/><path d="m7 16.5-4.74-2.85"/><path d="m7 16.5 5-3"/><path d="M7 16.5v5.17"/><path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z"/><path d="m17 16.5-5-3"/><path d="m17 16.5 4.74-2.85"/><path d="M17 16.5v5.17"/><path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z"/><path d="M12 8 7.26 5.15"/><path d="m12 8 4.74-2.85"/><path d="M12 13.5V8"/></svg>'''
 icon_allowed_claims = '''<svg xmlns="http://www.w3.org/2000/svg" 2ie5h="24" height="24" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database-zap w-6 h-6 text-indigo-500"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M3 5V19A9 3 0 0 0 15 21.84" /><path d="M21 5V8" /><path d="M21 12L18 17H22L19 22" /><path d="M3 12A9 3 0 0 0 14.59 14.87" /></svg>'''
 icon_dosage = '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-test-tube-diagonal w-6 h-6 text-indigo-500"><path d="M21 7 6.82 21.18a2.83 2.83 0 0 1-3.99-.01a2.83 2.83 0 0 1 0-4L17 3"/><path d="m16 2 6 6"/><path d="M12 16H4"/></svg>'''
 icon_pending = '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-notebook-tabs w-6 h-6 text-indigo-500"><path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M15 2v20"/><path d="M15 7h5"/><path d="M15 12h5"/><path d="M15 17h5"/></svg>'''
 icon_notes = '''<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-octagon-alert w-6 h-6 text-indigo-500"><path d="M12 16h.01"/><path d="M12 8v4"/><path d="M15.312 2a2 2 0 0 1 1.414.586l4.688 4.688A2 2 0 0 1 22 8.688v6.624a2 2 0 0 1-.586 1.414l-4.688 4.688a2 2 0 0 1-1.414.586H8.688a2 2 0 0 1-1.414-.586l-4.688-4.688A2 2 0 0 1 2 15.312V8.688a2 2 0 0 1 .586-1.414l4.688-4.688A2 2 0 0 1 8.688 2z"/></svg>'''
-
 def section(title, content, icon_svg, ingredient=None):
     content = str(content).replace("\\n", "\n")
     lines = [
@@ -949,12 +384,10 @@ def section(title, content, icon_svg, ingredient=None):
         for line in content.replace(";", "\n").split("\n")
         if line.strip()
     ]
-
     items_html = (
         f"<ul class='list-disc pl-6 space-y-1'>{''.join(lines)}</ul>"
         if len(lines) > 1 else f"<p>{content}</p>"
     )
-    
     # Create copy icon
     copy_icon = f"""
     <button onclick="copyContainerContent(this)" class="copy-icon" title="Copy all content">
@@ -964,7 +397,6 @@ def section(title, content, icon_svg, ingredient=None):
         </svg>
     </button>
     """
-    
     return f"""
     <details class="printable-section group bg-white p-4 rounded-xl shadow transition-all relative">
       <summary class="flex items-center justify-between cursor-pointer list-none">
@@ -989,7 +421,6 @@ from html import escape
 def render_claim_card_collapsible(title, claims, dosage, idx, add_rewrite=True, icon_html=""):
     allowed_claims_class = " allowed-claims-section" if title.strip().lower() == "allowed claims" else ""
     open_attr = " open" if idx == 1 else ""
-
     # Build dosage block if provided
     dosage_block = ""
     if dosage and dosage.strip():
@@ -1005,7 +436,6 @@ def render_claim_card_collapsible(title, claims, dosage, idx, add_rewrite=True, 
             </ul>
         </details>
         """
-
     # Build the claims HTML as a list
     claims_html = ""
     for c in claims:
@@ -1023,7 +453,6 @@ def render_claim_card_collapsible(title, claims, dosage, idx, add_rewrite=True, 
             </div>
         </li>
         """
-
     # Create copy icon (only for non-Allowed Claims sections to avoid duplicates)
     copy_icon = ""
     if title.strip().lower() != "allowed claims":
@@ -1035,7 +464,6 @@ def render_claim_card_collapsible(title, claims, dosage, idx, add_rewrite=True, 
             </svg>
         </button>
         """
-
     # Now return the HTML block
     return f"""
     <details{open_attr} class="bg-white rounded-xl shadow p-4 mb-3 group printable-section{allowed_claims_class} relative">
@@ -1054,77 +482,21 @@ def render_claim_card_collapsible(title, claims, dosage, idx, add_rewrite=True, 
         {copy_icon}
     </details>
     """
-
-
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 # ROUTES
-# ----------------------------------------------------
-# Session management for search limits
-user_sessions = defaultdict(lambda: {"search_count": 0, "first_search": None})
-MAX_FREE_SEARCHES = 3
-
-def get_user_id(request: Request) -> str:
-    """Get or create user ID from cookies"""
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        user_id = str(uuid.uuid4())
-    return user_id
-
-def check_search_limit(user_id: str) -> dict:
-    """Check if user has exceeded search limit"""
-    session = user_sessions[user_id]
-    if session["first_search"] is None:
-        session["first_search"] = datetime.now()
-    
-    if session["search_count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": session["search_count"]}
-    return {"exceeded": False, "searches_used": session["search_count"]}
-
-def increment_search_count(user_id: str):
-    """Increment user search count"""
-    user_sessions[user_id]["search_count"] += 1
 @app.get("/_columns", response_class=JSONResponse)
 async def list_columns():
     return {"columns": df.columns.tolist()}
-
 @app.get("/categories", response_class=JSONResponse)
 def list_categories():
     return {"categories": list(CATEGORY_LEXICON.keys())}
-
 @app.get("/lexicon", response_class=JSONResponse)
 def get_lexicon():
     # Create a lexicon based on actual CSV categories and their keywords
     csv_lexicon = {}
-    
     try:
         # Get unique categories from CSV
         if "Categories" in df.columns:
             categories = df["Categories"].dropna().unique()
-            
             # Extract main categories (not composite ones)
             main_categories = set()
             for category in categories:
@@ -1132,21 +504,18 @@ def get_lexicon():
                     # Split composite categories and add individual ones
                     category_parts = [cat.strip().lower() for cat in category.split(",")]
                     main_categories.update(category_parts)
-            
             # Now process each main category
             for main_category in main_categories:
                 if main_category:
                     # Find all rows that contain this main category
                     matching_rows = df[df["Categories"].str.contains(main_category, case=False, na=False)]
                     keywords = []
-                    
                     # Check if Category_Keywords column exists
                     category_keywords_col = None
                     for col in df.columns:
                         if "Category_Keywords" in col:
                             category_keywords_col = col
                             break
-                    
                     if category_keywords_col:
                         for _, row in matching_rows.iterrows():
                             category_keywords = row.get(category_keywords_col, "")
@@ -1161,27 +530,21 @@ def get_lexicon():
                                         keywords.extend([kw.strip() for kw in keywords_part.split(",")])
                                 else:
                                     keywords.extend([kw.strip() for kw in category_keywords.split(",")])
-                    
                     # Remove duplicates and empty strings
                     unique_keywords = list(set([kw for kw in keywords if kw]))
                     csv_lexicon[main_category] = unique_keywords
-    
         # Fallback to original lexicon for categories not in CSV
         for cat, keywords in CATEGORY_LEXICON.items():
             if cat not in csv_lexicon:
                 csv_lexicon[cat] = keywords
-    
     except Exception as e:
         print(f"Error in lexicon endpoint: {e}")
         # Return original lexicon as fallback
         return CATEGORY_LEXICON
-    
     return csv_lexicon
-
 @app.get("/_cat", response_class=JSONResponse)
 def debug_category(q: str):
     return {"query": q, "category": category_for_query(q)}
-
 @app.get("/health")
 async def health_check():
     """Health check endpoint for Railway"""
@@ -1191,7 +554,6 @@ async def health_check():
         "data_loaded": len(df) if 'df' in globals() else 0,
         "variations_loaded": len(GPT_LOOKUP) if 'GPT_LOOKUP' in globals() else 0
     }
-
 @app.get("/", response_class=HTMLResponse)
 def read_form(request: Request):
     ingredients = sorted(df["Ingredient"].dropna().unique())
@@ -1201,7 +563,6 @@ def read_form(request: Request):
         "ingredients": ingredients,
         "countries": countries
     })
-
 # ---------- Ingredient -> Claims ----------
 @app.post("/search-by-ingredient", response_class=HTMLResponse)
 async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(...), request: Request = None):
@@ -1209,7 +570,6 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
         # Check search limit (IP + User Agent based)
         fingerprint = get_client_fingerprint(request)
         search_limit = check_search_limit(fingerprint)
-        
         if search_limit["exceeded"]:
             return HTMLResponse(
                 f"""
@@ -1237,11 +597,9 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
                 """,
                 status_code=403
             )
-        
         print(f"🔍 Searching for ingredient: '{ingredient}' in country: '{country}'")
         print(f"📊 DataFrame shape: {df.shape}")
         print(f"📋 DataFrame columns: {list(df.columns)}")
-        
         # Check if 'Ingredient' column exists
         if 'Ingredient' not in df.columns:
             print(f"❌ 'Ingredient' column not found! Available columns: {list(df.columns)}")
@@ -1249,12 +607,10 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
                 "<p class='text-gray-600'>Error: Ingredient column not found in data.</p>",
                 status_code=200
             )
-        
         # Get rows for this ingredient and specific country
         matches = df[(df["Ingredient"].str.lower() == ingredient.lower()) & 
                     (df["Country"].str.lower() == country.lower())]
         print(f"🎯 Found {len(matches)} matches for ingredient '{ingredient}' in country '{country}'")
-        
         if matches.empty:
             # Let's see what ingredients are available
             available_ingredients = df["Ingredient"].unique()
@@ -1263,19 +619,16 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
                 "<p class='text-gray-600'>No claims found for this ingredient.</p>",
                 status_code=200
             )
-
         # Debug: Show first few matches
         print(f"🔍 First 3 matches:")
         for i, (_, row) in enumerate(matches.head(3).iterrows()):
             print(f"  Row {i}: {dict(row)}")
-
         # Collect all unique claims across all countries
         all_claims = set()
         all_dosages = set()
         all_categories = set()
         all_pending = set()
         all_notes = set()
-        
         for _, row in matches.iterrows():
             # Try multiple possible claim columns
             claim_sources = [
@@ -1283,53 +636,42 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
                 row.get("Allowed Claims", ""),
                 row.get("Claims", "")
             ]
-            
             for claim_source in claim_sources:
                 if claim_source and str(claim_source).strip() and str(claim_source).strip() != "nan":
                     all_claims.add(str(claim_source).strip())
                     break
-            
             dosage = row.get("Dosage", "")
             if dosage and str(dosage).strip() and str(dosage).strip() != "nan":
                 all_dosages.add(str(dosage).strip())
-                
             category = row.get("Categories", "")
             if category and str(category).strip() and str(category).strip() != "nan":
                 all_categories.add(str(category).strip())
-                
             pending = row.get("Health claim pending European authorisation", "")
             if pending and str(pending).strip() and str(pending).strip() != "nan":
                 all_pending.add(str(pending).strip())
-                
             notes = row.get("Claim Use Notes", "")
             if notes and str(notes).strip() and str(notes).strip() != "nan":
                 all_notes.add(str(notes).strip())
-
         print(f"📈 Collected {len(all_claims)} unique claims, {len(all_dosages)} dosages")
         print(f"📋 Claims found: {list(all_claims)[:5]}")  # Show first 5 claims
-
         if not all_claims:
             return HTMLResponse(
                 "<p class='text-gray-600'>No claims found for this ingredient.</p>",
                 status_code=200
             )
-
         # Since we're already filtering by country, we don't need to group by country
         parts = [f"<h2 class='text-2xl font-bold text-gray-800 mb-6'>{ingredient} — {country}</h2>"]
-        
         # Get data for the specific country
         country_claims = []
         country_dosages = set()  # Use set to avoid duplicates
         country_pending = ""
         country_notes = ""
         country_categories = set()
-        
         for _, row in matches.iterrows():
             # Collect claims for this country
             claim = row.get("Claim", "")
             if claim and str(claim).strip() and str(claim).strip() != "nan":
                 country_claims.append(str(claim).strip())
-            
             # Get country-specific dosage
             dosage = row.get("Dosage", "")
             if dosage and str(dosage).strip() and str(dosage).strip() != "nan":
@@ -1337,22 +679,18 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
                 # Don't add "Banned" as a dosage
                 if dosage_text.lower() != "banned":
                     country_dosages.add(dosage_text)
-            
             # Get country-specific pending claims
             pending = row.get("Health claim pending European authorisation", "")
             if pending and str(pending).strip() and str(pending).strip() != "nan":
                 country_pending = str(pending).strip()
-            
             # Get country-specific notes
             notes = row.get("Claim Use Notes", "")
             if notes and str(notes).strip() and str(notes).strip() != "nan":
                 country_notes = str(notes).strip()
-            
             # Get country-specific categories
             category = row.get("Categories", "")
             if category and str(category).strip() and str(category).strip() != "nan":
                 country_categories.add(str(category).strip())
-        
         # Format categories for this country
         formatted_categories_html = "N/A"
         if country_categories:
@@ -1360,13 +698,11 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
             for cat in sorted(country_categories):
                 category_tags.append(f'<span class="inline-block bg-indigo-100 text-indigo-800 text-sm font-medium px-3 py-1 rounded-full mr-2 mb-2">{cat}</span>')
             formatted_categories_html = "".join(category_tags)
-        
         # Format dosages for this country
         country_dosage_text = ""
         if country_dosages:
             dosage_list = sorted(list(country_dosages))
             country_dosage_text = "\n".join(dosage_list)
-        
         # Create sections for the specific country
         country_parts = [
             section("Claim Category", formatted_categories_html, icon_claim_category),
@@ -1382,18 +718,12 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
             section("Health Claim Pending European Authorisation", country_pending, icon_pending),
             section("Claim Use Notes", country_notes, icon_notes),
         ]
-        
         parts.extend(country_parts)
-
         html_content = "<div class='space-y-6'>" + "".join(parts) + "</div>"
         response = HTMLResponse(html_content, status_code=200)
-        
-        # Increment search count and set cookie
-        increment_search_count(user_id)
-        response.set_cookie(key="user_id", value=user_id, max_age=365*24*60*60)
-        
+        # Increment search count (IP + User Agent based)
+        increment_search_count(fingerprint)
         return response
-
     except Exception as e:
         import traceback
         print(f"❌ Error in search_by_ingredient: {e}")
@@ -1402,7 +732,6 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
             f"<p style='color: red;'>Server error: {str(e)}</p>",
             status_code=500
         )
-
 # ---------- Claim -> Ingredients ----------
 @app.post("/search-by-claim", response_class=HTMLResponse)
 async def search_by_claim(
@@ -1420,7 +749,6 @@ async def search_by_claim(
         # Check search limit (IP + User Agent based)
         fingerprint = get_client_fingerprint(request)
         search_limit = check_search_limit(fingerprint)
-        
         if search_limit["exceeded"]:
             return HTMLResponse(
                 f"""
@@ -1448,32 +776,26 @@ async def search_by_claim(
                 """,
                 status_code=403
             )
-        
         if df_claims.empty or tfidf_matrix is None:
             return HTMLResponse("<p class='text-gray-600'>No claim data indexed.</p>", status_code=200)
-
         query_norm = normalize_text(claim or "")
-
         # 1) kies category
         if category:
             query_category = category
         else:
             # als user geen category koos, leiden we hem af op basis van het (eventuele) keyword
             query_category = category_for_query(query_norm)
-
         # 2) filter by country + category
         mask = (
             (df_claims["Country"].str.lower() == country.lower()) &
             (df_claims["category"] == query_category)
         )
         sub = df_claims[mask].reset_index(drop=True)
-
         if sub.empty:
             return HTMLResponse(
                 f"<p class='text-gray-600'>No matching ingredients found for this claim in {country} (matched category: <b>{query_category}</b>).</p>",
                 status_code=200
             )
-
         # --- PAD 1: GEEN claim/keyword ingevuld → géén ranking, gewoon tonen ---
         if not (claim.strip()):
             TOP_PER_ING = 3
@@ -1489,13 +811,10 @@ async def search_by_claim(
                     cleaned.append(c)
                     if len(cleaned) >= TOP_PER_ING:
                         break
-
                 dosage_vals = [d for d in g.get("Dosage", pd.Series([], dtype=str)).astype(str) if d and d.strip()]
                 dosage = dosage_vals[0] if dosage_vals else ""
-
                 if cleaned:
                     cards.append(render_claim_card_collapsible(ing, cleaned, dosage, idx, add_rewrite=True))
-
             header = f"""
               <div class="flex items-center gap-2 mb-4">
                 <span class="inline-flex items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-medium px-2 py-1">
@@ -1505,31 +824,23 @@ async def search_by_claim(
               </div>
             """
             response = HTMLResponse(header + "".join(cards), status_code=200)
-            
                     # Increment search count (IP + User Agent based)
             increment_search_count(fingerprint)
-            
             return response
-
         # --- PAD 2: WÉL claim/keyword ingevuld → ranking met TF-IDF + RapidFuzz ---
         sub_matrix = tfidf_matrix[mask.values]
-
         q_vec = vectorizer.transform([query_norm])
         cos_scores = cosine_similarity(q_vec, sub_matrix).ravel()
         fuzz_scores = np.array([fuzz.token_set_ratio(query_norm, t) / 100.0 for t in sub["claim_norm"]])
-
         alpha = 0.7
         blended = alpha * cos_scores + (1 - alpha) * fuzz_scores
-
         sub = sub.assign(_cos=cos_scores, _fuzz=fuzz_scores, _score=blended)
         sub = sub[sub["_score"] > 0.05].sort_values("_score", ascending=False).head(200)
-
         if sub.empty:
             return HTMLResponse(
                 "<p class='text-gray-600'>No matching ingredients found after scoring.</p>",
                 status_code=200
             )
-
         TOP_PER_ING = 3
         cards = []
         for idx, (ing, g) in enumerate(sub.groupby("Ingredient", sort=False), start=1):
@@ -1543,19 +854,15 @@ async def search_by_claim(
                 cleaned.append(c)
                 if len(cleaned) >= TOP_PER_ING:
                     break
-
             dosage_vals = [d for d in g.get("Dosage", pd.Series([], dtype=str)).astype(str) if d and d.strip()]
             dosage = dosage_vals[0] if dosage_vals else ""
-
             if cleaned:
                 cards.append(render_claim_card_collapsible(ing, cleaned, dosage, idx, add_rewrite=True))
-
         if not cards:
             return HTMLResponse(
                 f"<p class='text-gray-600'>No matching ingredients found in {country} (category: {query_category}).</p>",
                 status_code=200
             )
-
         header = f"""
           <div class="flex items-center gap-2 mb-4">
             <span class="inline-flex items-center rounded-full bg-indigo-100 text-indigo-700 text-xs font-medium px-2 py-1">
@@ -1565,12 +872,9 @@ async def search_by_claim(
           </div>
         """
         response = HTMLResponse(header + "".join(cards), status_code=200)
-        
         # Increment search count (IP + User Agent based)
         increment_search_count(fingerprint)
-        
         return response
-
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -1578,7 +882,6 @@ async def search_by_claim(
             f"<p class='text-red-600'>Server error: {str(e)}</p>",
             status_code=500
         )
-
 # ---------- Get GPT Variations for a Single Claim ----------
 @app.get("/get-variations", response_class=JSONResponse)
 async def get_gpt_variations(claim: str):
@@ -1591,8 +894,6 @@ async def get_gpt_variations(claim: str):
     if not variations:
         return {"claim": claim, "variations": [], "status": "no_match"}
     return {"claim": claim, "variations": variations, "status": "ok"}
-
-
 # ---------- Check claims (detailed) ----------
 @app.post("/check-claims")
 async def check_claims(ingredient: str = Form(...), country: str = Form(...)):
@@ -1606,9 +907,7 @@ async def check_claims(ingredient: str = Form(...), country: str = Form(...)):
                 "<p class='text-red-600'>No matching ingredient(s) found for that country.</p>",
                 status_code=200
             )
-
         row = subset.iloc[0]
-
         claims_text = row.get("Allowed Claims", "") or row.get("Claim", "")
         parts = [
             f"<h2 class='text-2xl font-bold text-gray-800 mb-6'>{row['Ingredient']} — {row['Country']}</h2>",
@@ -1621,37 +920,30 @@ async def check_claims(ingredient: str = Form(...), country: str = Form(...)):
     add_rewrite=True,
     icon_html=icon_allowed_claims   # ✅ this adds the icon
 ),
-
-
             section("Dosage", row["Dosage"], icon_dosage),
             section("Health Claim Pending European Authorisation", row["Health claim pending European authorisation"], icon_pending),
             section("Claim Use Notes", row["Claim Use Notes"], icon_notes),
         ]
-
         html_content = "<div class='space-y-6'>" + "".join(parts) + "</div>"
         response = HTMLResponse(html_content, status_code=200)
-        response.set_cookie(key="user_id", value=user_id, max_age=365*24*60*60)
+        # Increment search count (IP + User Agent based)
+        increment_search_count(fingerprint)
         return response
-
     except Exception as e:
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-
 # ---------- Email (PDF) ----------
 class EmailRequest(BaseModel):
     emails: List[EmailStr]
     html: str
-
 @app.post("/send-email")
 async def send_email(email_request: EmailRequest):
     try:
         if conf is None:
             raise HTTPException(status_code=500, detail="Email configuration not available")
-        
         # Create enhanced PDF with logo, date/time, and better formatting
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
         # Create the enhanced HTML for PDF
         enhanced_html = f"""
         <!DOCTYPE html>
@@ -1702,11 +994,9 @@ async def send_email(email_request: EmailRequest):
                 <div class="subtitle">Ingredient-based EU compliance insights</div>
                 <div class="datetime">Generated on: {current_time}</div>
             </div>
-            
             <div class="content">
                 {email_request.html}
             </div>
-            
             <div class="footer">
                 <p>This report was generated by ClaimSafer™ Ingredient Vault™</p>
                 <p>For questions, contact your compliance team</p>
@@ -1714,14 +1004,11 @@ async def send_email(email_request: EmailRequest):
         </body>
         </html>
         """
-            
         pdf_file = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
         pisa_status = pisa.CreatePDF(enhanced_html, dest=pdf_file)
         pdf_file.close()
-
         if pisa_status.err:
             raise HTTPException(status_code=500, detail="PDF generatie mislukt")
-
         message = MessageSchema(
             subject="Your ClaimSafer™ Report",
             recipients=email_request.emails,
@@ -1729,29 +1016,21 @@ async def send_email(email_request: EmailRequest):
             subtype="plain",
             attachments=[pdf_file.name]
         )
-
         fm = FastMail(conf)
         await fm.send_message(message)
         Path(pdf_file.name).unlink(missing_ok=True)
-
         return {"message": "Email + PDF verstuurd"}
-
     except Exception as e:
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Email sending failed: {e}")
-
-
 # ✅ ---------- Rewrite Claim ----------
 from fastapi import Body
-
 @app.post("/rewrite-claim", response_class=JSONResponse)
 async def rewrite_claim(data: dict = Body(...)):
     claim = data.get("claim", "")
     if not claim.strip():
         return {"success": False, "message": "No claim provided"}
-
     # ✅ Dummy rewrite for now
     rewritten = f"✅ Rewritten: {claim}"
-
     return {"success": True, "rewritten": rewritten}
