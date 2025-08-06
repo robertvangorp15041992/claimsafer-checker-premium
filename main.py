@@ -41,7 +41,7 @@ ip_ua_searches = defaultdict(lambda: {"count": 0, "reset_time": time.time()})
 MAX_FREE_SEARCHES = 3
 # Whitelist for unlimited searches (add your IPs here)
 WHITELISTED_IPS = {
-    "24.132.17.26",  # Your current IP
+    # "24.132.17.26",  # Your current IP (temporarily disabled for testing)
     # Add more IPs here if needed
 }
 def get_client_fingerprint(request: Request) -> str:
