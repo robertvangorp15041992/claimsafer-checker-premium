@@ -1273,7 +1273,6 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
 
         html_content = "<div class='space-y-6'>" + "".join(parts) + "</div>"
         response = HTMLResponse(html_content, status_code=200)
-        response.set_cookie(key="user_id", value=user_id, max_age=365*24*60*60)
         return response
 
     except Exception as e:
