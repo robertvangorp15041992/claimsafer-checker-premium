@@ -39,6 +39,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 from rapidfuzz import fuzz
 from nltk.stem.snowball import SnowballStemmer
+import time
 
 # ----------------------------------------------------
 # Session management for search limits
@@ -65,6 +66,31 @@ def check_search_limit(user_id: str) -> dict:
 def increment_search_count(user_id: str):
     """Increment user search count"""
     user_sessions[user_id]["search_count"] += 1
+
+# ----------------------------------------------------
+# IP-based search limiting (more secure than cookies)
+ip_searches = defaultdict(lambda: {"count": 0, "reset_time": time.time()})
+MAX_FREE_SEARCHES = 3
+
+def check_search_limit(client_ip: str) -> dict:
+    """Check if IP has exceeded search limit"""
+    now = time.time()
+    ip_data = ip_searches[client_ip]
+    
+    # Reset every 24 hours
+    if now - ip_data["reset_time"] > 86400:  # 24 hours
+        ip_data["count"] = 0
+        ip_data["reset_time"] = now
+    
+    if ip_data["count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": ip_data["count"]}
+    return {"exceeded": False, "searches_used": ip_data["count"]}
+
+def increment_search_count(client_ip: str):
+    """Increment IP search count"""
+    ip_searches[client_ip]["count"] += 1
+
+# ----------------------------------------------------
 # Basic helpers
 # ----------------------------------------------------
 # Session management for search limits
@@ -1121,9 +1147,9 @@ def read_form(request: Request):
 @app.post("/search-by-ingredient", response_class=HTMLResponse)
 async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(...), request: Request = None):
     try:
-        # Check search limit
-        user_id = get_user_id(request)
-        search_limit = check_search_limit(user_id)
+        # Check search limit (IP-based)
+        client_ip = request.client.host
+        search_limit = check_search_limit(client_ip)
         
         if search_limit["exceeded"]:
             return HTMLResponse(
@@ -1332,9 +1358,9 @@ async def search_by_claim(
     - Als claim is ingevuld (met of zonder category): gebruik TF-IDF + RapidFuzz ranking binnen de (gekozen of afgeleide) categorie.
     """
     try:
-        # Check search limit
-        user_id = get_user_id(request)
-        search_limit = check_search_limit(user_id)
+        # Check search limit (IP-based)
+        client_ip = request.client.host
+        search_limit = check_search_limit(client_ip)
         
         if search_limit["exceeded"]:
             return HTMLResponse(
@@ -1421,9 +1447,8 @@ async def search_by_claim(
             """
             response = HTMLResponse(header + "".join(cards), status_code=200)
             
-            # Increment search count and set cookie
-            increment_search_count(user_id)
-            response.set_cookie(key="user_id", value=user_id, max_age=365*24*60*60)
+            # Increment search count (IP-based)
+            increment_search_count(client_ip)
             
             return response
 
@@ -1482,9 +1507,8 @@ async def search_by_claim(
         """
         response = HTMLResponse(header + "".join(cards), status_code=200)
         
-        # Increment search count and set cookie
-        increment_search_count(user_id)
-        response.set_cookie(key="user_id", value=user_id, max_age=365*24*60*60)
+        # Increment search count (IP-based)
+        increment_search_count(client_ip)
         
         return response
 
