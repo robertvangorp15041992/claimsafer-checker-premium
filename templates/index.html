@@ -249,6 +249,35 @@
       50% { transform: scale(1.05); }
     }
 
+    /* Landing Page Logo Animations */
+    @keyframes bounce-in {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes logo-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes fade-in-up {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-bounce-in {
+      animation: bounce-in 1s ease-out forwards;
+    }
+
+    .animate-logo-spin {
+      animation: logo-spin 2s linear infinite;
+    }
+
+    .animate-fade-in-up {
+      animation: fade-in-up 0.6s ease-out forwards;
+    }
+
     /* Progress Bar */
     .progress-container {
       width: 300px;
@@ -351,53 +380,25 @@
     </div>
 
     <div class="logo-container">
-      <div class="bars-container">
-        <svg class="logo-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5000 5000" preserveAspectRatio="xMidYMid meet">
-          <style>
-            svg { shape-rendering: geometricPrecision; }
-            
-            /* Groups slide in, paths wave */
-            .bar-group { opacity: 0; transform: translateY(1200px); }
-            .bar { transform-box: fill-box; transform-origin: center; }
-            
-            @keyframes slideIn {
-              from { transform: translateY(1200px); opacity: 0; }
-              to   { transform: translateY(0); opacity: 1; }
-            }
-            
-            @keyframes waveMotion {
-              0%, 100% { transform: translateY(0); }
-              25% { transform: translateY(-200px); }
-              50% { transform: translateY(0); }
-              75% { transform: translateY(200px); }
-            }
-            
-            /* Animate each group separately */
-            .g1 { animation: slideIn 1s ease-out forwards 0.1s; }
-            .g2 { animation: slideIn 1s ease-out forwards 0.4s; }
-            .g3 { animation: slideIn 1s ease-out forwards 0.7s; }
-            
-            /* Wave (slower, independent) */
-            .bar1 { animation: waveMotion 6s ease-in-out infinite 1.2s; }
-            .bar2 { animation: waveMotion 6s ease-in-out infinite 1.5s; }
-            .bar3 { animation: waveMotion 6s ease-in-out infinite 1.8s; }
-          </style>
-          
-          <g class="bar-group g1">
-            <path class="bar bar1" fill="#213B4E" d="M1549 2926 c-135 -133 -251 -251 -257 -263 -9 -16 -12 -232 -12 -806
-              0 -860 -3 -825 57 -794 24 13 380 343 441 409 l22 24 -2 836 -3 835 -246 -241z"/>
-          </g>
-          <g class="bar-group g2">
-            <path class="bar bar2" fill="#5F66D3" d="M2540 3395 c-80 -77 -183 -176 -229 -220 -46 -44 -96 -98 -112 -119
-              l-29 -39 0 -964 c0 -882 1 -964 16 -970 9 -3 31 1 48 11 31 17 420 373 444
-              407 9 14 12 230 10 1026 l-3 1008 -145 -140z"/>
-          </g>
-          <g class="bar-group g3">
-            <path class="bar bar3" fill="#5F66D3" d="M3503 3991 c-37 -32 -148 -139 -245 -238 l-178 -179 0 -1028 0 -1027
-              28 21 c74 58 451 433 466 464 14 31 16 128 16 1034 0 618 -4 1003 -9 1007 -6
-              3 -41 -21 -78 -54z"/>
-          </g>
-        </svg>
+      <div class="w-24 h-24 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl flex items-center justify-center mx-auto shadow-lg border border-gray-200 transform transition-all duration-1000 animate-bounce-in scale-100 opacity-100" style="animation-delay: 0.1s;">
+        <div class="relative">
+          <svg class="w-20 h-20 animate-logo-spin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5000 5000" preserveAspectRatio="xMidYMid meet">
+            <g class="transition-all duration-1000 animate-fade-in-up" style="animation-delay: 0.3s;">
+              <path fill="#213B4E" d="M1549 2926 c-135 -133 -251 -251 -257 -263 -9 -16 -12 -232 -12 -806
+                0 -860 -3 -825 57 -794 24 13 380 343 441 409 l22 24 -2 836 -3 835 -246 -241z"/>
+            </g>
+            <g class="transition-all duration-1000 animate-fade-in-up" style="animation-delay: 0.5s;">
+              <path fill="#5F66D3" d="M2540 3395 c-80 -77 -183 -176 -229 -220 -46 -44 -96 -98 -112 -119
+                l-29 -39 0 -964 c0 -882 1 -964 16 -970 9 -3 31 1 48 11 31 17 420 373 444
+                407 9 14 12 230 10 1026 l-3 1008 -145 -140z"/>
+            </g>
+            <g class="transition-all duration-1000 animate-fade-in-up" style="animation-delay: 0.7s;">
+              <path fill="#5F66D3" d="M3503 3991 c-37 -32 -148 -139 -245 -238 l-178 -179 0 -1028 0 -1027
+                28 21 c74 58 451 433 466 464 14 31 16 128 16 1034 0 618 -4 1003 -9 1007 -6
+                3 -41 -21 -78 -54z"/>
+            </g>
+          </svg>
+        </div>
       </div>
     </div>
 
