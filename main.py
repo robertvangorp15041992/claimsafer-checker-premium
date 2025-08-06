@@ -1137,13 +1137,13 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
                         </div>
                         <div class="ml-3">
                             <h3 class="text-sm font-medium text-red-800">
-                                Zoeklimiet bereikt
+                                Search Limit Reached
                             </h3>
                             <div class="mt-2 text-sm text-red-700">
-                                <p>Je hebt je gratis zoekopdrachten opgebruikt. Je hebt {search_limit["searches_used"]} van de {MAX_FREE_SEARCHES} gratis zoekopdrachten gebruikt.</p>
-                                <p class="mt-2">Upgrade naar een premium account voor onbeperkte zoekopdrachten.</p>
+                                <p>You have used {search_limit["searches_used"]} of {MAX_FREE_SEARCHES} free searches.</p>
+                                <p class="mt-2">Upgrade to a premium account for unlimited searches.</p>
                                 <a href="https://www.claimsafer.com/#/pricing" target="_blank" class="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                                    Bekijk Premium Prijzen
+                                    View Premium Pricing
                                 </a>
                             </div>
                         </div>
@@ -1348,13 +1348,13 @@ async def search_by_claim(
                         </div>
                         <div class="ml-3">
                             <h3 class="text-sm font-medium text-red-800">
-                                Zoeklimiet bereikt
+                                Search Limit Reached
                             </h3>
                             <div class="mt-2 text-sm text-red-700">
-                                <p>Je hebt je gratis zoekopdrachten opgebruikt. Je hebt {search_limit["searches_used"]} van de {MAX_FREE_SEARCHES} gratis zoekopdrachten gebruikt.</p>
-                                <p class="mt-2">Upgrade naar een premium account voor onbeperkte zoekopdrachten.</p>
+                                <p>You have used {search_limit["searches_used"]} of {MAX_FREE_SEARCHES} free searches.</p>
+                                <p class="mt-2">Upgrade to a premium account for unlimited searches.</p>
                                 <a href="https://www.claimsafer.com/#/pricing" target="_blank" class="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
-                                    Bekijk Premium Prijzen
+                                    View Premium Pricing
                                 </a>
                             </div>
                         </div>
