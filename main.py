@@ -1119,8 +1119,40 @@ def read_form(request: Request):
 
 # ---------- Ingredient -> Claims ----------
 @app.post("/search-by-ingredient", response_class=HTMLResponse)
-async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(...)):
+async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(...), request: Request = None):
     try:
+        # Check search limit
+        user_id = get_user_id(request)
+        search_limit = check_search_limit(user_id)
+        
+        if search_limit["exceeded"]:
+            return HTMLResponse(
+                f"""
+                <div class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">
+                                Zoeklimiet bereikt
+                            </h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <p>Je hebt je gratis zoekopdrachten opgebruikt. Je hebt {search_limit["searches_used"]} van de {MAX_FREE_SEARCHES} gratis zoekopdrachten gebruikt.</p>
+                                <p class="mt-2">Upgrade naar een premium account voor onbeperkte zoekopdrachten.</p>
+                                <a href="https://www.claimsafer.com/#/pricing" target="_blank" class="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                                    Bekijk Premium Prijzen
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """,
+                status_code=403
+            )
+        
         print(f"🔍 Searching for ingredient: '{ingredient}' in country: '{country}'")
         print(f"📊 DataFrame shape: {df.shape}")
         print(f"📋 DataFrame columns: {list(df.columns)}")
@@ -1270,6 +1302,11 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
 
         html_content = "<div class='space-y-6'>" + "".join(parts) + "</div>"
         response = HTMLResponse(html_content, status_code=200)
+        
+        # Increment search count and set cookie
+        increment_search_count(user_id)
+        response.set_cookie(key="user_id", value=user_id, max_age=365*24*60*60)
+        
         return response
 
     except Exception as e:
@@ -1286,7 +1323,8 @@ async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(
 async def search_by_claim(
     claim: str = Form(""),
     country: str = Form(...),
-    category: Optional[str] = Form(None)
+    category: Optional[str] = Form(None),
+    request: Request = None
 ):
     """
     Claim -> Ingredients:
@@ -1294,6 +1332,38 @@ async def search_by_claim(
     - Als claim is ingevuld (met of zonder category): gebruik TF-IDF + RapidFuzz ranking binnen de (gekozen of afgeleide) categorie.
     """
     try:
+        # Check search limit
+        user_id = get_user_id(request)
+        search_limit = check_search_limit(user_id)
+        
+        if search_limit["exceeded"]:
+            return HTMLResponse(
+                f"""
+                <div class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">
+                                Zoeklimiet bereikt
+                            </h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <p>Je hebt je gratis zoekopdrachten opgebruikt. Je hebt {search_limit["searches_used"]} van de {MAX_FREE_SEARCHES} gratis zoekopdrachten gebruikt.</p>
+                                <p class="mt-2">Upgrade naar een premium account voor onbeperkte zoekopdrachten.</p>
+                                <a href="https://www.claimsafer.com/#/pricing" target="_blank" class="mt-3 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                                    Bekijk Premium Prijzen
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                """,
+                status_code=403
+            )
+        
         if df_claims.empty or tfidf_matrix is None:
             return HTMLResponse("<p class='text-gray-600'>No claim data indexed.</p>", status_code=200)
 
@@ -1349,7 +1419,13 @@ async def search_by_claim(
                 <span class="text-xs text-gray-400">({len(cards)} ingredient(s))</span>
               </div>
             """
-            return HTMLResponse(header + "".join(cards), status_code=200)
+            response = HTMLResponse(header + "".join(cards), status_code=200)
+            
+            # Increment search count and set cookie
+            increment_search_count(user_id)
+            response.set_cookie(key="user_id", value=user_id, max_age=365*24*60*60)
+            
+            return response
 
         # --- PAD 2: WÉL claim/keyword ingevuld → ranking met TF-IDF + RapidFuzz ---
         sub_matrix = tfidf_matrix[mask.values]
@@ -1404,7 +1480,13 @@ async def search_by_claim(
             <span class="text-xs text-gray-400">({len(cards)} ingredient(s))</span>
           </div>
         """
-        return HTMLResponse(header + "".join(cards), status_code=200)
+        response = HTMLResponse(header + "".join(cards), status_code=200)
+        
+        # Increment search count and set cookie
+        increment_search_count(user_id)
+        response.set_cookie(key="user_id", value=user_id, max_age=365*24*60*60)
+        
+        return response
 
     except Exception as e:
         import traceback
