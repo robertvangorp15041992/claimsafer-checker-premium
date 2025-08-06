@@ -68,27 +68,66 @@ def increment_search_count(user_id: str):
     user_sessions[user_id]["search_count"] += 1
 
 # ----------------------------------------------------
-# IP-based search limiting (more secure than cookies)
-ip_searches = defaultdict(lambda: {"count": 0, "reset_time": time.time()})
+# IP + User Agent based search limiting (most secure)
+ip_ua_searches = defaultdict(lambda: {"count": 0, "reset_time": time.time()})
 MAX_FREE_SEARCHES = 3
 
-def check_search_limit(client_ip: str) -> dict:
-    """Check if IP has exceeded search limit"""
+def get_client_fingerprint(request: Request) -> str:
+    """Create unique fingerprint from IP + User Agent"""
+    # Get real IP (handle proxies)
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    if forwarded_for:
+        client_ip = forwarded_for.split(",")[0].strip()
+    else:
+        client_ip = request.client.host
+    
+    # Get User Agent
+    user_agent = request.headers.get("User-Agent", "")
+    
+    # Create fingerprint (IP + simplified User Agent)
+    # Extract browser name and version
+    ua_parts = []
+    if "Chrome" in user_agent:
+        ua_parts.append("Chrome")
+    elif "Firefox" in user_agent:
+        ua_parts.append("Firefox")
+    elif "Safari" in user_agent:
+        ua_parts.append("Safari")
+    elif "Edge" in user_agent:
+        ua_parts.append("Edge")
+    else:
+        ua_parts.append("Other")
+    
+    # Add OS info
+    if "Windows" in user_agent:
+        ua_parts.append("Windows")
+    elif "Mac" in user_agent:
+        ua_parts.append("Mac")
+    elif "Linux" in user_agent:
+        ua_parts.append("Linux")
+    else:
+        ua_parts.append("UnknownOS")
+    
+    fingerprint = f"{client_ip}:{':'.join(ua_parts)}"
+    return fingerprint
+
+def check_search_limit(fingerprint: str) -> dict:
+    """Check if IP+UA combination has exceeded search limit"""
     now = time.time()
-    ip_data = ip_searches[client_ip]
+    ip_ua_data = ip_ua_searches[fingerprint]
     
     # Reset every 24 hours
-    if now - ip_data["reset_time"] > 86400:  # 24 hours
-        ip_data["count"] = 0
-        ip_data["reset_time"] = now
+    if now - ip_ua_data["reset_time"] > 86400:  # 24 hours
+        ip_ua_data["count"] = 0
+        ip_ua_data["reset_time"] = now
     
-    if ip_data["count"] >= MAX_FREE_SEARCHES:
-        return {"exceeded": True, "searches_used": ip_data["count"]}
-    return {"exceeded": False, "searches_used": ip_data["count"]}
+    if ip_ua_data["count"] >= MAX_FREE_SEARCHES:
+        return {"exceeded": True, "searches_used": ip_ua_data["count"]}
+    return {"exceeded": False, "searches_used": ip_ua_data["count"]}
 
-def increment_search_count(client_ip: str):
-    """Increment IP search count"""
-    ip_searches[client_ip]["count"] += 1
+def increment_search_count(fingerprint: str):
+    """Increment IP+UA search count"""
+    ip_ua_searches[fingerprint]["count"] += 1
 
 # ----------------------------------------------------
 # Basic helpers
@@ -1147,9 +1186,9 @@ def read_form(request: Request):
 @app.post("/search-by-ingredient", response_class=HTMLResponse)
 async def search_by_ingredient(ingredient: str = Form(...), country: str = Form(...), request: Request = None):
     try:
-        # Check search limit (IP-based)
-        client_ip = request.client.host
-        search_limit = check_search_limit(client_ip)
+        # Check search limit (IP + User Agent based)
+        fingerprint = get_client_fingerprint(request)
+        search_limit = check_search_limit(fingerprint)
         
         if search_limit["exceeded"]:
             return HTMLResponse(
@@ -1358,9 +1397,9 @@ async def search_by_claim(
     - Als claim is ingevuld (met of zonder category): gebruik TF-IDF + RapidFuzz ranking binnen de (gekozen of afgeleide) categorie.
     """
     try:
-        # Check search limit (IP-based)
-        client_ip = request.client.host
-        search_limit = check_search_limit(client_ip)
+        # Check search limit (IP + User Agent based)
+        fingerprint = get_client_fingerprint(request)
+        search_limit = check_search_limit(fingerprint)
         
         if search_limit["exceeded"]:
             return HTMLResponse(
@@ -1447,8 +1486,8 @@ async def search_by_claim(
             """
             response = HTMLResponse(header + "".join(cards), status_code=200)
             
-            # Increment search count (IP-based)
-            increment_search_count(client_ip)
+                    # Increment search count (IP + User Agent based)
+            increment_search_count(fingerprint)
             
             return response
 
@@ -1507,8 +1546,8 @@ async def search_by_claim(
         """
         response = HTMLResponse(header + "".join(cards), status_code=200)
         
-        # Increment search count (IP-based)
-        increment_search_count(client_ip)
+        # Increment search count (IP + User Agent based)
+        increment_search_count(fingerprint)
         
         return response
 
