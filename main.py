@@ -72,6 +72,12 @@ def increment_search_count(user_id: str):
 ip_ua_searches = defaultdict(lambda: {"count": 0, "reset_time": time.time()})
 MAX_FREE_SEARCHES = 3
 
+# Whitelist for unlimited searches (add your IPs here)
+WHITELISTED_IPS = {
+    "24.132.17.26",  # Your current IP
+    # Add more IPs here if needed
+}
+
 def get_client_fingerprint(request: Request) -> str:
     """Create unique fingerprint from IP + User Agent"""
     # Get real IP (handle proxies)
@@ -113,6 +119,13 @@ def get_client_fingerprint(request: Request) -> str:
 
 def check_search_limit(fingerprint: str) -> dict:
     """Check if IP+UA combination has exceeded search limit"""
+    # Extract IP from fingerprint for whitelist check
+    client_ip = fingerprint.split(":")[0]
+    
+    # Check if IP is whitelisted
+    if client_ip in WHITELISTED_IPS:
+        return {"exceeded": False, "searches_used": 0, "whitelisted": True}
+    
     now = time.time()
     ip_ua_data = ip_ua_searches[fingerprint]
     
@@ -127,6 +140,13 @@ def check_search_limit(fingerprint: str) -> dict:
 
 def increment_search_count(fingerprint: str):
     """Increment IP+UA search count"""
+    # Extract IP from fingerprint for whitelist check
+    client_ip = fingerprint.split(":")[0]
+    
+    # Don't increment count for whitelisted IPs
+    if client_ip in WHITELISTED_IPS:
+        return
+    
     ip_ua_searches[fingerprint]["count"] += 1
 
 # ----------------------------------------------------
