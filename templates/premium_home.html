@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClaimSafer Premium - Member Access</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://js.stripe.com/v3/"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-6">
+                    <div class="flex items-center">
+                        <h1 class="text-2xl font-bold text-gray-900">ClaimSafer Premium</h1>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div id="user-info" class="hidden">
+                            <span id="user-email" class="text-sm text-gray-600"></span>
+                            <span id="user-tier" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800"></span>
+                        </div>
+                        <button id="login-btn" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">Login</button>
+                        <button id="register-btn" class="text-sm font-medium text-gray-600 hover:text-gray-500">Register</button>
+                        <button id="logout-btn" class="hidden text-sm font-medium text-red-600 hover:text-red-500">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <!-- Login/Register Forms -->
+            <div id="auth-forms" class="mb-8">
+                <!-- Login Form -->
+                <div id="login-form" class="hidden bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <h2 class="text-lg font-medium text-gray-900 mb-4">Login to Your Account</h2>
+                    <form id="login-form-element">
+                        <div class="mb-4">
+                            <label for="login-email" class="block text-sm font-medium text-gray-700">Email</label>
+                            <input type="email" id="login-email" name="email" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div class="mb-4">
+                            <label for="login-password" class="block text-sm font-medium text-gray-700">Password</label>
+                            <input type="password" id="login-password" name="password" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Login
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Register Form -->
+                <div id="register-form" class="hidden bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <h2 class="text-lg font-medium text-gray-900 mb-4">Create Your Account</h2>
+                    <form id="register-form-element">
+                        <div class="mb-4">
+                            <label for="register-email" class="block text-sm font-medium text-gray-700">Email</label>
+                            <input type="email" id="register-email" name="email" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <div class="mb-4">
+                            <label for="register-password" class="block text-sm font-medium text-gray-700">Password</label>
+                            <input type="password" id="register-password" name="password" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        </div>
+                        <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            Register
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Search Interface (only visible when logged in) -->
+            <div id="search-interface" class="hidden">
+                <!-- User Profile -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                    <h2 class="text-lg font-medium text-gray-900 mb-4">Your Subscription</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-600">Plan</p>
+                            <p id="subscription-tier" class="text-lg font-medium text-gray-900"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Searches Used</p>
+                            <p id="searches-used" class="text-lg font-medium text-gray-900"></p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-600">Search Limit</p>
+                            <p id="search-limit" class="text-lg font-medium text-gray-900"></p>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <button id="upgrade-btn" class="hidden inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                            Upgrade to Premium
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search Forms -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Ingredient Search -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Search by Ingredient</h3>
+                        <form id="ingredient-search-form">
+                            <div class="mb-4">
+                                <label for="ingredient" class="block text-sm font-medium text-gray-700">Ingredient</label>
+                                <input type="text" id="ingredient" name="ingredient" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
+                            <div class="mb-4">
+                                <label for="ingredient-country" class="block text-sm font-medium text-gray-700">Country</label>
+                                <select id="ingredient-country" name="country" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    <option value="">Select a country</option>
+                                    <option value="EU">European Union</option>
+                                    <option value="US">United States</option>
+                                    <option value="UK">United Kingdom</option>
+                                    <option value="CA">Canada</option>
+                                    <option value="AU">Australia</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Search
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Claim Search -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Search by Claim</h3>
+                        <form id="claim-search-form">
+                            <div class="mb-4">
+                                <label for="claim" class="block text-sm font-medium text-gray-700">Health Claim</label>
+                                <input type="text" id="claim" name="claim" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                            </div>
+                            <div class="mb-4">
+                                <label for="claim-country" class="block text-sm font-medium text-gray-700">Country</label>
+                                <select id="claim-country" name="country" required class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                                    <option value="">Select a country</option>
+                                    <option value="EU">European Union</option>
+                                    <option value="US">United States</option>
+                                    <option value="UK">United Kingdom</option>
+                                    <option value="CA">Canada</option>
+                                    <option value="AU">Australia</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                                Search
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Search Results -->
+                <div id="search-results" class="mt-6"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let currentToken = localStorage.getItem('auth_token');
+        let currentUser = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            if (currentToken) {
+                loadUserProfile();
+            }
+        });
+
+        // Auth form toggles
+        document.getElementById('login-btn').addEventListener('click', function() {
+            document.getElementById('login-form').classList.toggle('hidden');
+            document.getElementById('register-form').classList.add('hidden');
+        });
+
+        document.getElementById('register-btn').addEventListener('click', function() {
+            document.getElementById('register-form').classList.toggle('hidden');
+            document.getElementById('login-form').classList.add('hidden');
+        });
+
+        // Login form
+        document.getElementById('login-form-element').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentToken = data.access_token;
+                    localStorage.setItem('auth_token', currentToken);
+                    document.getElementById('login-form').classList.add('hidden');
+                    loadUserProfile();
+                } else {
+                    const error = await response.json();
+                    alert('Login failed: ' + error.detail);
+                }
+            } catch (error) {
+                alert('Login failed: ' + error.message);
+            }
+        });
+
+        // Register form
+        document.getElementById('register-form-element').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentToken = data.access_token;
+                    localStorage.setItem('auth_token', currentToken);
+                    document.getElementById('register-form').classList.add('hidden');
+                    loadUserProfile();
+                } else {
+                    const error = await response.json();
+                    alert('Registration failed: ' + error.detail);
+                }
+            } catch (error) {
+                alert('Registration failed: ' + error.message);
+            }
+        });
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', function() {
+            localStorage.removeItem('auth_token');
+            currentToken = null;
+            currentUser = null;
+            showAuthForms();
+            hideSearchInterface();
+        });
+
+        // Load user profile
+        async function loadUserProfile() {
+            try {
+                const response = await fetch('/api/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+
+                if (response.ok) {
+                    currentUser = await response.json();
+                    showSearchInterface();
+                    updateUserInfo();
+                } else {
+                    localStorage.removeItem('auth_token');
+                    currentToken = null;
+                    showAuthForms();
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                localStorage.removeItem('auth_token');
+                currentToken = null;
+                showAuthForms();
+            }
+        }
+
+        // Update user info display
+        function updateUserInfo() {
+            document.getElementById('user-email').textContent = currentUser.email;
+            document.getElementById('user-tier').textContent = currentUser.subscription_tier;
+            document.getElementById('subscription-tier').textContent = currentUser.subscription_tier;
+            document.getElementById('searches-used').textContent = currentUser.searches_used;
+            document.getElementById('search-limit').textContent = currentUser.searches_limit === 999999 ? 'Unlimited' : currentUser.searches_limit;
+
+            // Show/hide upgrade button
+            if (currentUser.subscription_tier === 'basic') {
+                document.getElementById('upgrade-btn').classList.remove('hidden');
+            } else {
+                document.getElementById('upgrade-btn').classList.add('hidden');
+            }
+        }
+
+        // Show search interface
+        function showSearchInterface() {
+            document.getElementById('search-interface').classList.remove('hidden');
+            document.getElementById('auth-forms').classList.add('hidden');
+            document.getElementById('user-info').classList.remove('hidden');
+            document.getElementById('login-btn').classList.add('hidden');
+            document.getElementById('register-btn').classList.add('hidden');
+            document.getElementById('logout-btn').classList.remove('hidden');
+        }
+
+        // Hide search interface
+        function hideSearchInterface() {
+            document.getElementById('search-interface').classList.add('hidden');
+            document.getElementById('auth-forms').classList.remove('hidden');
+            document.getElementById('user-info').classList.add('hidden');
+            document.getElementById('login-btn').classList.remove('hidden');
+            document.getElementById('register-btn').classList.remove('hidden');
+            document.getElementById('logout-btn').classList.add('hidden');
+        }
+
+        // Show auth forms
+        function showAuthForms() {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('register-form').classList.add('hidden');
+        }
+
+        // Search forms
+        document.getElementById('ingredient-search-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('ingredient', document.getElementById('ingredient').value);
+            formData.append('country', document.getElementById('ingredient-country').value);
+
+            try {
+                const response = await fetch('/search-by-ingredient-premium', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: formData
+                });
+
+                const result = await response.text();
+                document.getElementById('search-results').innerHTML = result;
+                
+                // Reload user profile to update search count
+                if (response.ok) {
+                    loadUserProfile();
+                }
+            } catch (error) {
+                alert('Search failed: ' + error.message);
+            }
+        });
+
+        document.getElementById('claim-search-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('claim', document.getElementById('claim').value);
+            formData.append('country', document.getElementById('claim-country').value);
+
+            try {
+                const response = await fetch('/search-by-claim-premium', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: formData
+                });
+
+                const result = await response.text();
+                document.getElementById('search-results').innerHTML = result;
+                
+                // Reload user profile to update search count
+                if (response.ok) {
+                    loadUserProfile();
+                }
+            } catch (error) {
+                alert('Search failed: ' + error.message);
+            }
+        });
+
+        // Upgrade to premium
+        document.getElementById('upgrade-btn').addEventListener('click', async function() {
+            try {
+                const response = await fetch('/api/create-checkout-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify({ tier: 'premium' })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    window.location.href = data.url;
+                } else {
+                    alert('Failed to create checkout session');
+                }
+            } catch (error) {
+                alert('Upgrade failed: ' + error.message);
+            }
+        });
+
+        // Global upgrade function
+        window.upgradeToPremium = function() {
+            document.getElementById('upgrade-btn').click();
+        };
+    </script>
+</body>
+</html> 

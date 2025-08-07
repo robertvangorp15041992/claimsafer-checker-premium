@@ -10,3 +10,14 @@ xhtml2pdf
 scikit-learn
 rapidfuzz
 nltk
+# Authentication and database
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart
+# Stripe integration
+stripe
+# Database
+psycopg2-binary
+sqlalchemy
+# Environment variables
+python-dotenv
